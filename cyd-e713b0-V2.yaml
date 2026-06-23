@@ -1,0 +1,557 @@
+substitutions:
+  name: cyd-e713b0
+  friendly_name: CYD e713b0
+  # ────────────────────────────────────────────────────────────
+  #  POWER FLOW SENSORS — update entity IDs to match your HA
+  # ────────────────────────────────────────────────────────────
+  solar_entity:         "sensor.srne_pv_power"
+  a_c_entity:           "sensor.a_c_1f_power_meter_power"
+  battery_entity:       "sensor.battery_soc_mean"
+  home_entity:          "sensor.srne_load_l1_apparent_power"
+  battery_power_entity: "sensor.total_battery_power"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+  on_boot:
+    priority: -10
+    then:
+      - light.turn_on:
+          id: backlight
+          brightness: !lambda 'return id(display_brightness).state / 100.0f;'
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+button:
+  - platform: safe_mode
+    id: button_safe_mode
+    name: Safe Mode Boot
+
+  - platform: factory_reset
+    id: factory_reset_btn
+    name: Factory Reset
+
+# ── Fonts ─────────────────────────────────────────────────────
+font:
+  - file: "gfonts://Roboto"
+    id: header_font
+    size: 40
+    glyphs: "0123456789:/ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  - file: "gfonts://Roboto"
+    id: value_font
+    size: 50
+    glyphs: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .%+-"
+  - file: "gfonts://Roboto"
+    id: label_font
+    size: 12
+    glyphs: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .%/+-"
+  - file: "gfonts://Material Icons"
+    id: icon_font
+    size: 60
+    glyphs: [
+      "\uec0f",  # solar_power
+      "\ueb3b",  # ac_unit (snowflake — A/C)
+      "\ue88a",  # home
+    ]
+  - file: "gfonts://Material Icons"
+    id: icon_font_batt
+    size: 90
+    glyphs: [
+      "\ue1a4",  # battery_full
+      "\uebd4",  # battery_5_bar
+      "\uebe2",  # battery_4_bar
+      "\uebdd",  # battery_3_bar
+      "\uebe0",  # battery_2_bar
+      "\uebd9",  # battery_1_bar
+      "\uebdc",  # battery_0_bar
+      "\ue19c",  # battery_alert
+    ]
+
+# ── Time ──────────────────────────────────────────────────────
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time:
+      - seconds: /1
+        then:
+          - lvgl.label.update:
+              id: lbl_time
+              text: !lambda |-
+                auto now = id(ha_time).now();
+                if (!now.is_valid()) return std::string("--:--:-- --");
+                int h = now.hour;
+                const char* ampm = (h >= 12) ? "PM" : "AM";
+                if (h == 0) h = 12;
+                else if (h > 12) h -= 12;
+                return str_sprintf("%d:%02d:%02d %s", h, now.minute, now.second, ampm);
+
+# ── Power Flow Sensors ────────────────────────────────────────
+sensor:
+  # Optional WiFi Strength Monitor
+  - platform: wifi_signal
+    name: Signal strength
+    update_interval: 60s
+
+  - platform: homeassistant
+    id: ha_solar
+    entity_id: ${solar_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: val_solar
+            text: !lambda |-
+              if (x >= 1000) return str_sprintf("%.2f", x / 1000.0f);
+              if (x >= 100) return str_sprintf("%.0f", x);
+              if (x >= 10) return str_sprintf("%.1f", x);
+              return str_sprintf("%.2f", x);
+            text_color: !lambda |-
+              if (x > 3600) return lv_color_hex(0x00FF00);
+              if (x > 2000) return lv_color_hex(0x0096FF);
+              if (x > 900)  return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: icon_solar
+            text_color: !lambda |-
+              if (x > 3600) return lv_color_hex(0x00FF00);
+              if (x > 2000) return lv_color_hex(0x0096FF);
+              if (x > 900)  return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: val_solar_unit
+            text: !lambda 'return (x >= 1000) ? std::string("kW") : std::string("W");'
+
+  - platform: homeassistant
+    id: ha_a_c
+    entity_id: ${a_c_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: val_a_c
+            text: !lambda |-
+              if (x >= 1000) return str_sprintf("%.2f", x / 1000.0f);
+              if (x >= 100) return str_sprintf("%.0f", x);
+              if (x >= 10) return str_sprintf("%.1f", x);
+              return str_sprintf("%.2f", x);
+            text_color: !lambda |-
+              if (x < 700) return lv_color_hex(0x00FF00);
+              if (x < 1000) return lv_color_hex(0x0096FF);
+              if (x < 1200) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: icon_a_c
+            text_color: !lambda |-
+              if (x < 700) return lv_color_hex(0x00FF00);
+              if (x < 1000) return lv_color_hex(0x0096FF);
+              if (x < 1200) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: val_a_c_unit
+            text: !lambda 'return (x >= 1000) ? std::string("kW") : std::string("W");'
+
+  - platform: homeassistant
+    id: ha_home
+    entity_id: ${home_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: val_home
+            text: !lambda |-
+              if (x >= 1000) return str_sprintf("%.2f", x / 1000.0f);
+              if (x >= 100) return str_sprintf("%.0f", x);
+              if (x >= 10) return str_sprintf("%.1f", x);
+              return str_sprintf("%.2f", x);
+            text_color: !lambda |-
+              if (x < 1000) return lv_color_hex(0x00FF00);
+              if (x < 2000) return lv_color_hex(0x0096FF);
+              if (x < 3000) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: icon_home
+            text_color: !lambda |-
+              if (x < 1000) return lv_color_hex(0x00FF00);
+              if (x < 2000) return lv_color_hex(0x0096FF);
+              if (x < 3000) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: val_home_unit
+            text: !lambda 'return (x >= 1000) ? std::string("kVA") : std::string("VA");'
+
+  - platform: homeassistant
+    id: ha_battery
+    entity_id: ${battery_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: icon_battery
+            text: !lambda |-
+              if (x >= 98) return "\ue1a4";
+              if (x >= 85) return "\uebd4";
+              if (x >= 70) return "\uebe2";
+              if (x >= 55) return "\uebdd";
+              if (x >= 40) return "\uebe0";
+              if (x >= 25) return "\uebd9";
+              if (x >= 10) return "\uebdc";
+              return "\ue19c";
+        - lvgl.label.update:
+            id: val_battery
+            text: !lambda |-
+              if (x >= 100) return str_sprintf("%.0f", x);
+              if (x >= 10) return str_sprintf("%.1f", x);
+              return str_sprintf("%.2f", x);
+            text_color: !lambda |-
+              if (x >= 80) return lv_color_hex(0x00FF00);
+              if (x >= 50) return lv_color_hex(0x0096FF);
+              if (x >= 30) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: icon_battery
+            text_color: !lambda |-
+              if (x >= 80) return lv_color_hex(0x00FF00);
+              if (x >= 50) return lv_color_hex(0x0096FF);
+              if (x >= 30) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+
+  - platform: homeassistant
+    id: ha_battery_power
+    entity_id: ${battery_power_entity}
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: val_battery_power
+            text: !lambda |-
+              if (x >= 1000 || x <= -1000) return str_sprintf("%.2f", x / 1000.0f);
+              if (x >= 100 || x <= -100) return str_sprintf("%.0f", x);
+              if (x >= 10 || x <= -10) return str_sprintf("%.1f", x);
+              return str_sprintf("%.2f", x);
+            text_color: !lambda |-
+              if (x >= 2500) return lv_color_hex(0x00FF00);
+              if (x >= 500) return lv_color_hex(0x0096FF);
+              if (x >= 0) return lv_color_hex(0xFFFF00);
+              return lv_color_hex(0xFFA500);
+        - lvgl.label.update:
+            id: val_battery_power_unit
+            text: !lambda |-
+              return (x >= 1000 || x <= -1000) ? std::string("kW") : std::string("W");
+
+# ── Hardware ──────────────────────────────────────────────────
+spi:
+  - id: tft
+    clk_pin: GPIO14
+    mosi_pin: GPIO13
+    miso_pin: GPIO12
+  - id: touch
+    clk_pin: GPIO25
+    mosi_pin: GPIO32
+    miso_pin: GPIO39
+
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: backlight_output
+
+light:
+  - platform: monochromatic
+    output: backlight_output
+    name: "Display Backlight"
+    id: backlight
+    restore_mode: RESTORE_DEFAULT_ON
+    default_transition_length: 0.5s
+
+display:
+  - platform: mipi_spi
+    model: ILI9341
+    id: lcd_display
+    spi_id: tft
+    cs_pin: GPIO15
+    dc_pin: GPIO2
+    auto_clear_enabled: false
+    update_interval: never
+    invert_colors: false
+    color_order: BGR
+    dimensions:
+      width: 240
+      height: 320
+
+
+# ── Brightness Control (HA) ───────────────────────────────────
+number:
+  - platform: template
+    name: "Display Brightness"
+    id: display_brightness
+    min_value: 20
+    max_value: 100
+    step: 10
+    initial_value: 50
+    restore_value: true
+    optimistic: true
+    unit_of_measurement: "%"
+    on_value:
+      then:
+        - light.turn_on:
+            id: backlight
+            brightness: !lambda 'return x / 100.0f;'
+            transition_length: 300ms
+
+# ── LVGL UI ───────────────────────────────────────────────────
+# LVGL rotation: 90 → canvas becomes 
+# 320×240 (full landscape, no gaps)
+# text_color: 0xFFFFFF # Standard, White
+# text_color: 0x00FF00 # Standard, Green
+# text_color: 0xFFFF00 # Standard, Yellow
+# text_color: 0xFF0000 # Standard, Red
+# text_color: 0xFF2400 # Scarlet
+# text_color: 0xFFA500 # Standard, Orange
+# text_color: 0x0096FF # Bright Blue
+# ──────────────────────────────────────────────────────────────
+
+lvgl:
+  displays:
+    - lcd_display
+  buffer_size: 25%
+  rotation: 270
+  pages:
+    - id: main_page
+      bg_color: 0x000000
+      bg_opa: COVER
+      scrollable: false
+      widgets:
+
+        # ── Header: Time ──────────────────────────────────────
+        - label:
+            id: lbl_time
+            text: "88:88:88 88"
+            text_font: header_font
+            text_color: 0xFFFFFF 
+            align: CENTER
+            y: -106
+
+        # ── Divider Horizontal ────────────────────────────────
+        - line:
+            points:
+              - 0, 34
+              - 320, 34
+            line_color: 0x333333
+            line_width: 1
+
+        # ── Battery Power (middle) ────────────────────────────
+        - obj:
+            x: 0
+            y: 18
+            width: 320
+            height: 200
+            bg_opa: TRANSP
+            border_width: 0
+            border_color: 0x333333
+            radius: 0
+            align: CENTER
+            scrollable: false
+            widgets:
+              - label:
+                  text: "Battery Power"
+                  text_font: label_font
+                  text_color: 0x888888
+                  align: CENTER
+                  x: 0
+                  y: -26
+              - label:
+                  id: val_battery_power
+                  text: "8.88"
+                  text_font: value_font
+                  text_color: 0xFFFF00
+                  align: CENTER
+              - label:
+                  id: val_battery_power_unit
+                  text: "W"
+                  text_font: label_font
+                  text_color: 0xFFFFFF
+                  align: CENTER
+                  x: 0
+                  y: 26
+                  
+        # ── PV (top-left) ─────────────────────────────────────
+        - obj:
+            x: 0
+            y: 25
+            width: 160
+            height: 95
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: icon_solar
+                  text: "\uec0f"
+                  text_font: icon_font
+                  text_color: 0xFFFF00
+                  align: CENTER
+                  x: -55
+              - label:
+                  text: "Solar Power"
+                  text_font: label_font
+                  text_color: 0x888888
+                  align: CENTER
+                  x: 20
+                  y: -26
+              - label:
+                  id: val_solar
+                  text: "8.88"
+                  text_font: value_font
+                  text_color: 0xFFFF00
+                  align: CENTER
+                  x: 20
+                  y: 0
+              - label:
+                  id: val_solar_unit
+                  text: "W"
+                  text_font: label_font
+                  text_color: 0xFFFFFF
+                  align: CENTER
+                  x: 20
+                  y: 26
+
+        # ── Battery (bottom-left) ─────────────────────────────
+        - obj:
+            x: 0
+            y: 160
+            width: 160
+            height: 95
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: icon_battery
+                  text: "\ue1a4"
+                  text_font: icon_font_batt
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: -60
+                  y: -10
+              - label:
+                  text: "Battery SOC"
+                  text_font: label_font
+                  text_color: 0x888888
+                  align: CENTER
+                  x: 20
+                  y: -26
+              - label:
+                  id: val_battery
+                  text: "88.8"
+                  text_font: value_font
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: 20
+                  y: 0
+              - label:
+                  text: "%"
+                  text_font: label_font
+                  text_color: 0xFFFFFF
+                  align: CENTER
+                  x: 20
+                  y: 26
+
+        # ── Home Consumption (top-right) ─────────────────────
+        - obj:
+            x: 160
+            y: 25
+            width: 160
+            height: 95
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: icon_home
+                  text: "\ue88a"
+                  text_font: icon_font
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: 55
+              - label:
+                  text: "Home Load"
+                  text_font: label_font
+                  text_color: 0x888888
+                  align: CENTER
+                  x: -20
+                  y: -26
+              - label:
+                  id: val_home
+                  text: "8.88"
+                  text_font: value_font
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: -20
+                  y: 0
+              - label:
+                  id: val_home_unit
+                  text: "VA"
+                  text_font: label_font
+                  text_color: 0xFFFFFF
+                  align: CENTER
+                  x: -20
+                  y: 26
+
+        # ── A/C Power (bottom-right) ──────────────────────────
+        - obj:
+            x: 160
+            y: 160
+            width: 160
+            height: 95
+            bg_opa: TRANSP
+            border_width: 0
+            radius: 0
+            scrollable: false
+            widgets:
+              - label:
+                  id: icon_a_c
+                  text: "\ueb3b"
+                  text_font: icon_font
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: 55
+              - label:
+                  text: "A/C 1st Floor"
+                  text_font: label_font
+                  text_color: 0x888888
+                  align: CENTER
+                  x: -20
+                  y: -26
+              - label:
+                  id: val_a_c
+                  text: "8.88"
+                  text_font: value_font
+                  text_color: 0xFFFF00 
+                  align: CENTER
+                  x: -20
+                  y: 0
+              - label:
+                  id: val_a_c_unit
+                  text: "W"
+                  text_font: label_font
+                  text_color: 0xFFFFFF
+                  align: CENTER
+                  x: -20
+                  y: 26

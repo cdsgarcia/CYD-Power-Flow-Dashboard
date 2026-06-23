@@ -1,0 +1,36 @@
+name: Validate ESPHome Config
+
+on:
+  push:
+    paths:
+      - '*.yaml'
+      - '*.yml'
+      - '.github/workflows/*.yml'
+  pull_request:
+    paths:
+      - '*.yaml'
+      - '*.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    name: Validate cyd-e713b0.yaml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create dummy secrets.yaml
+        run: |
+          cat > secrets.yaml << 'EOF'
+          wifi_ssid: "test_ssid"
+          wifi_password: "test_password"
+          wifi_ssid2: "test_ssid2"
+          wifi_password2: "test_password2"
+          EOF
+
+      - name: Install ESPHome
+        run: pip install esphome --quiet
+
+      - name: Validate config
+        run: esphome config cyd-e713b0.yaml

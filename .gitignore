@@ -1,0 +1,20 @@
+# ESPHome secrets — never commit credentials
+secrets.yaml
+
+# ESPHome build artifacts
+.esphome/
+build/
+*.bin
+*.elf
+*.map
+
+# ESPHome managed packages cache
+managed_components/
+
+# Editor / OS artifacts
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+.DS_Store
