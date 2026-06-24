@@ -1,0 +1,54 @@
+substitutions:
+  name: cyd-e713b0-test-ble-proxy
+  friendly_name: CYD e713b0 TEST BLE Proxy
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+    advanced:
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+esp32_ble_tracker:
+  scan_parameters:
+    # We currently use the defaults to ensure Bluetooth
+    # can co-exist with WiFi In the future we may be able to
+    # enable the built-in coexistence logic in ESP-IDF
+    active: true
+    # interval: 1100ms
+    # window: 1100ms
+
+bluetooth_proxy:
+  active: true
+  connection_slots: 4
+
+esp32_ble:
+  max_connections: 4
+
+button:
+  - platform: safe_mode
+    id: button_safe_mode
+    name: Safe Mode Boot
+
+  - platform: factory_reset
+    id: factory_reset_btn
+    name: Factory Reset

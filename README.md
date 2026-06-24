@@ -179,6 +179,10 @@ Add a **History Graph** card in HA tracking `sensor.cyd_heap_largest_block` with
 |------|---------|
 | `cyd-e713b0.yaml` | **Production config — the only file to edit and flash** |
 | `secrets.yaml.example` | Credentials template (copy to `secrets.yaml` and fill in) |
+| `cyd-e713b0-BatteryIconTest.yaml` | Battery icon glyph/animation test scaffold (reference only) |
+| `cyd-e713b0-SolarIconTest.yaml` | Solar icon glyph/animation test scaffold (reference only) |
+| `cyd-e713b0-Basic.yaml` | Minimal boot/WiFi scaffold (reference only) |
+| `cyd-e713b0-test-ble-proxy.yml` | Standalone BLE proxy experiment (reference only) |
 
 ---
 
