@@ -84,7 +84,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 
 ## Installation
 
-Choose the method that matches your setup:
+Choose the method that matches your setup. For full step-by-step instructions including Windows setup, USB drivers, web flasher, and troubleshooting, see the **[Installation wiki page](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/wiki/Installation)**.
 
 ---
 
@@ -92,96 +92,27 @@ Choose the method that matches your setup:
 
 Recommended for most users. Works via the **HA ESPHome add-on** or the standalone web app at [web.esphome.io](https://web.esphome.io) (Chrome / Edge required).
 
-#### 1. Download the config files
-
-Download `cyd-e713b0.yaml` and `secrets.yaml.example` from the [latest release](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/releases).
-
-#### 2. Create your secrets file
-
-Rename `secrets.yaml.example` → `secrets.yaml` and fill in your WiFi credentials:
-
-```yaml
-wifi_ssid: "YourWiFiSSID"
-wifi_password: "YourWiFiPassword"
-wifi_ssid2: "YourBackupSSID"
-wifi_password2: "YourBackupPassword"
-```
-
-#### 3. Update entity IDs
-
-Open `cyd-e713b0.yaml` in a text editor. Edit the `substitutions:` block at the top to match your HA entity IDs (see Prerequisites table above). Also update `ha_url`:
-
-```yaml
-ha_url: "http://192.168.x.x:8123"
-```
-
-#### 4. Add to ESPHome Dashboard
-
-**HA ESPHome add-on:**
-1. Open Home Assistant → **ESPHome** (sidebar)
-2. Click **+ New device** → **Skip** (manual config)
-3. Copy-paste the full contents of `cyd-e713b0.yaml` into the editor → **Save**
-
-**Standalone dashboard:**
-Copy `cyd-e713b0.yaml` and `secrets.yaml` into your ESPHome config folder.
-
-#### 5. Flash via USB (first time)
-
-1. Connect the CYD device via USB
-2. Find the `cyd-e713b0` device card → click **⋮** → **Install** → **Plug into this computer**
-3. Select the correct COM port → **Install**
-
-#### 6. Subsequent updates via OTA
-
-Click **Install** → **Wirelessly** — no USB needed once the device is on WiFi.
+1. Download `cyd-e713b0.yaml` and `secrets.yaml.example` from the [latest release](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/releases)
+2. Rename `secrets.yaml.example` → `secrets.yaml` and fill in your WiFi credentials
+3. Edit the `substitutions:` block in `cyd-e713b0.yaml` to match your HA entity IDs and `ha_url`
+4. Add to ESPHome Dashboard → flash via USB (first time) → OTA for all future updates
 
 ---
 
 ### Method B — Command Line
 
-#### 1. Clone the repository
+Requires Python 3.9–3.12 and ESPHome installed. See the [Installation wiki](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/wiki/Installation#method-b--command-line) for full setup including:
+- Python + ESPHome install on Windows
+- USB driver installation (CH340 / CP2102)
+- Compile-only and web flasher options
+- Corporate network / firewall workarounds
 
-```bash
-git clone https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard.git
-cd CYD-Power-Flow-Dashboard
-```
-
-#### 2. Create your secrets file
-
-```bash
-cp secrets.yaml.example secrets.yaml
-```
-
-Edit `secrets.yaml` with your WiFi credentials:
-
-```yaml
-wifi_ssid: "YourWiFiSSID"
-wifi_password: "YourWiFiPassword"
-wifi_ssid2: "YourBackupSSID"
-wifi_password2: "YourBackupPassword"
-```
-
-#### 3. Update entity IDs
-
-Edit the `substitutions:` block at the top of `cyd-e713b0.yaml` to match your Home Assistant entity IDs.
-
-Also update `ha_url` if your HA is on a different address:
-
-```yaml
-ha_url: "http://192.168.x.x:8123"
-```
-
-#### 4. Flash the device
-
-```bash
-# Validate config (no build):
-esphome config cyd-e713b0.yaml
-
-# Build and flash via USB:
-esphome run cyd-e713b0.yaml
-
-# OTA flash (device already online):
-esphome upload cyd-e713b0.yaml
+Quick reference once installed:
+```cmd
+python -m esphome config cyd-e713b0.yaml    # validate
+python -m esphome compile cyd-e713b0.yaml   # build only
+python -m esphome run cyd-e713b0.yaml       # build + flash USB
+python -m esphome upload cyd-e713b0.yaml    # OTA update
 ```
 
 ---
