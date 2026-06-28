@@ -169,7 +169,7 @@ Three diagnostic sensors are published to HA every 5 seconds:
 | `Heap Largest Block` | Largest contiguous free block — must stay ≥ 24,576 for screensaver |
 | `Loop Time` | ESP32 main loop time (ms) |
 
-Add a **History Graph** card in HA tracking `sensor.cyd_heap_largest_block` with a reference line at 24576 to monitor screensaver health.
+Add a **History Graph** card in HA tracking `sensor.cyd_e713b0_heap_largest_block` with a reference line at 24576 to monitor screensaver health.
 
 ---
 

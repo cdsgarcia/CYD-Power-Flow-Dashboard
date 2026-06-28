@@ -4,103 +4,31 @@ All notable changes to this project are documented here.
 
 ---
 
-## [Unreleased]
-
-### Added
-- `lv_label_set_text_static()` for all static glyph strings — eliminates heap alloc/free on every icon animation frame
-- Screensaver guards on `ha_solar`, `ha_home`, `ha_battery` `on_value` handlers — skips LVGL label updates during screensaver (widgets not visible), reducing heap fragmentation
-- `debug:` component with 3 HA diagnostic sensors: `Heap Free`, `Heap Largest Block`, `Loop Time` — exposed every 5s for real-time SRAM monitoring in HA
-
----
-
-## [v1.0.0] — 2025-06-23
+## [v1.0.0] — 2026-06-23
 
 ### Initial public release
 
----
-
-## [V8] — Internal
-
 ### Added
-- Moon cycle icon animation (5-step) for nighttime solar state using **Material Symbols Outlined** font (dual-widget design: `icon_solar` + `icon_solar_moon`)
-- Dual-font solar icon: state 1 (producing) on `icon_solar` (Material Icons), state 2 (night) on `icon_solar_moon` (Material Symbols Outlined)
-- `LV_OBJ_FLAG_HIDDEN` visibility control on every `update_solar_icon_state` call — prevents ghost icon artifacts
-
-### Fixed
-- Battery alert threshold corrected: `battery_alert` glyph at `< 10%`, `battery_0_bar` at `≥ 10%`
-- `BatteryIconTest.yaml`: COLORS[] idx5 was Orange — corrected to Yellow
-
----
-
-## [V7] — Internal
-
-### Added
-- Solar icon ping-pong animation (8-step sun glyph sequence) when solar power > 0
-- `update_solar_icon_state` script: state 0 (day/idle → cloudy), state 1 (producing → sun animation), state 2 (night/idle → moon placeholder)
-- 250ms animation interval shared by battery + solar icon cycling
-- `solar_log_enabled` switch to gate diagnostic logs
-
----
-
-## [V6] — Internal
-
-### Added
-- Battery icon animation: charging (glyph steps up), discharging (glyph steps down), alert flash at < 10% SOC
-- `update_batt_icon_state` script with 4 animation states (static / charging / discharging / alert)
-- `g_batt_anim_step` reset to current SOC glyph index on state change
-
----
-
-## [V5] — Internal
-
-### Added
-- Battery time estimate (slot 1): calculates wall-clock target time using current, capacity, SOC, and charge/discharge limits
-- 6 HA sensors published for graphing: `Heap hours to full/empty`, `Battery full/empty at` (minutes since midnight + text)
-- `advance_batt_slot` script with eligibility checks; `batt_time_enabled` switch
-- `batt_log_enabled` switch gating 4 log points
-- HA sensor publish throttled to 60s with `static` locals to avoid HA flooding
-
----
-
-## [V4] — Internal
-
-### Added
-- `entity_category: config` on all control/diagnostic entities
-- Persistent Fisher-Yates photo shuffle using `esp_random()` (hardware RNG)
-- `g_photo_queue` persistent full queue; slice-per-activation pattern prevents repeats before all photos shown
-- Battery + load slot timer merged into single shared `g_slot_secs` countdown
-
-### Fixed
-- Renamed all AC-specific globals/scripts to generic Load slot naming
-
----
-
-## [V3] — Internal
-
-### Added
+- Real-time power flow dashboard: Solar, Home Load, Battery SOC + Power
+- Battery time estimate (slot 1): calculates wall-clock charge/discharge target time
+- 6 HA sensors for battery estimate graphing (hours + minutes-since-midnight + text)
+- Home Load 3-slot cycling with configurable thresholds and labels
+- Battery + solar animated icons (charging/discharging/alert; sun ping-pong; moon cycle)
 - Photo screensaver with fade, slide (4 directions), instant, and random transitions
-- `lv_scr_load_anim()` page transitions; per-photo `lv_anim_t` animations
-- `ss_img_widget` hidden before `lv_scr_load_anim()` to prevent RGB565A8 draw-strip OOM
-- `?r=XXXXXXXX` random query string on every photo URL — forces `on_download_finished` even on repeat photos
-- `Photos Per Cycle`, `Photo Order`, `Transition Effect`, `Animation Duration` HA controls
-
----
-
-## [V2] — Internal
-
-### Added
-- Home Load 3-slot cycling (Load 1 / 2 / 3) with configurable thresholds and labels
-- Battery power slot cycling (W/kW slot)
 - PHT clock using `now.timestamp + (8*3600)` + `gmtime_r` — bypasses unreliable TZ env
-- Color thresholds for solar, home, battery SOC, battery power, load slots
+- Persistent Fisher-Yates photo shuffle using `esp_random()` (hardware RNG)
+- All controls exposed as HA entities (`entity_category: config`)
+- `lv_label_set_text_static()` for all icon glyphs — eliminates heap alloc/free on animation frames
+- Screensaver guards on `ha_solar`, `ha_home`, `ha_battery` `on_value` — skips LVGL updates during screensaver
+- `ss_img.release()` before every `set_url()` — prevents double-buffer overlap OOM
+- `ss_img_widget` hidden before `lv_scr_load_anim()` — prevents 3.6 KB RGB565A8 draw-strip OOM
+- `on_boot reserve()` — pre-allocates photo vectors before heap fragments
+- `debug:` component with 3 HA diagnostic sensors: `Heap Free`, `Heap Largest Block`, `Loop Time`
 - WiFi dual-AP fallback
+- GitHub Actions CI — validates config on every push
 
 ---
 
-## [V1] — Internal
+## Internal development history (V1–V8, pre-release)
 
-### Initial prototype
-- Basic ILI9341 display via `mipi_spi` platform
-- LVGL 320×240 landscape layout (270° rotation)
-- Solar power, home load, battery SOC quadrant display
-- Home Assistant native API sensor binding
+Pre-release versions were developed iteratively and are not tracked individually in this changelog. Key milestones: basic display (V1) → slot cycling + PHT clock (V2) → screensaver (V3) → shuffle + slot merge (V4) → battery time estimate (V5) → battery icon animation (V6) → solar animation (V7) → moon cycle + dual-font (V8) → OOM hardening → public release (v1.0.0).

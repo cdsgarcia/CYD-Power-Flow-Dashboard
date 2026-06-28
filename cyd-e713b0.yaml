@@ -4,9 +4,9 @@
 # Renders a Home Assistant power flow dashboard in 320×240 landscape (LVGL 270°).
 # Idle: transitions to a photo screensaver with configurable transitions/order.
 #
-# ▸ Flash:   esphome run cyd-e713b0.yaml
-# ▸ OTA:     esphome upload cyd-e713b0.yaml
-# ▸ Validate: esphome config cyd-e713b0.yaml
+# ▸ Flash:    python -m esphome run cyd-e713b0.yaml
+# ▸ OTA:      python -m esphome upload cyd-e713b0.yaml
+# ▸ Validate: python -m esphome config cyd-e713b0.yaml
 #
 # Credentials in secrets.yaml (not committed):
 #   wifi_ssid / wifi_password / wifi_ssid2 / wifi_password2
