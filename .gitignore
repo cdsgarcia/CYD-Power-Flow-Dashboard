@@ -1,3 +1,6 @@
+# Project instructions — local only, never committed
+.github/*instructions.md
+
 # ESPHome secrets — never commit credentials
 secrets.yaml
 
