@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 
 ---
 
-## [v1.0.1] — 2026-06-28
+## [v1.0.1] — 2026-06-28 — Screensaver OOM Fix + Documentation Updates
 
 ### Fixed
 - OOM crash during screensaver: `ss_img.release()` now called before every `set_url()` — frees old decoded image buffer before new download starts, preventing double-buffer overlap OOM. The heap sensor (5s poll) misses this sub-second window — graph can appear healthy while OOM occurs.
@@ -20,9 +20,7 @@ All notable changes to this project are documented here.
 
 ---
 
-## [v1.0.0] — 2026-06-23
-
-### Initial public release
+## [v1.0.0] — 2026-06-23 — Initial Public Release
 
 ### Added
 - Real-time power flow dashboard: Solar, Home Load, Battery SOC + Power
