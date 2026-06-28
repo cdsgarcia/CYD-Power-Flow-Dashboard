@@ -1479,7 +1479,7 @@ number:
     min_value: 1
     max_value: 20
     step: 1
-    initial_value: 4
+    initial_value: 3
     restore_value: true
     optimistic: true
     unit_of_measurement: "photos"
