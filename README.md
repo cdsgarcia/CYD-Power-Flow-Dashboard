@@ -9,7 +9,7 @@
 An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that renders a real-time Home Assistant power flow dashboard on a 320×240 ILI9341 display. When idle, it transitions to a photo screensaver with configurable transitions and play order.
 
 
-![Local Photo|50](./docs/preview.jpg)
+![Local Photo](./docs/preview.jpg){: width="50px" }
 
 
 ---
