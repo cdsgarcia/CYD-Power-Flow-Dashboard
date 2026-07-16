@@ -740,6 +740,20 @@ script:
           id(update_batt_display).execute();     // refresh Battery Power / Time tile
           id(update_batt_icon_state).execute();  // restore correct battery icon animation
           id(update_solar_icon_state).execute(); // restore correct solar icon animation (power/time may have changed)
+          // Refresh Battery SOC label — val_battery is only updated in ha_battery.on_value which is
+          // skipped during screensaver. Restore now from cache so display is never stale on return.
+          {
+            float soc = id(g_batt_soc_val);
+            char buf[10];
+            if      (soc >= 100) snprintf(buf, sizeof(buf), "%.0f", soc);
+            else if (soc >= 10)  snprintf(buf, sizeof(buf), "%.1f", soc);
+            else                 snprintf(buf, sizeof(buf), "%.2f", soc);
+            lv_label_set_text(id(val_battery), buf);
+            lv_color_t clr = (soc >= 80) ? lv_color_hex(0x00FF00) :
+                             (soc >= 50) ? lv_color_hex(0x0096FF) :
+                             (soc >= 25) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_obj_set_style_text_color(id(val_battery), clr, 0);
+          }
           lv_scr_load_anim(id(main_page)->obj, anim, (int)id(ss_anim_ms).state, 0, false);
 
 # ── Buttons ───────────────────────────────────────────────────
