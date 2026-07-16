@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.1.2] — 2026-07-16 — Battery Icon Animation Restart Fix
+
+### Fixed
+- Battery icon animation was restarting from the beginning on every sensor update instead of
+  completing its cycle. `update_batt_icon_state` unconditionally reset `g_batt_anim_step` on
+  every call. Since `ha_batt_current.on_value` fires every few seconds, the 7-step animation
+  (~7 seconds per full cycle) was always interrupted and never completed.
+  Fix: reset `g_batt_anim_step` only when the animation state changes (`new_state != prev_state`),
+  mirroring the existing correct behaviour in `update_solar_icon_state`.
+
+---
+
 ## [v1.1.1] — 2026-07-16 — Solar & Home Load Stale Display Fix
 
 ### Fixed
