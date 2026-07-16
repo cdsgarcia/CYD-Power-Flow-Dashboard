@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.1.0] — 2026-07-16 — Battery SOC Stale Display Fix
+
+### Fixed
+- Battery SOC label (`val_battery`) could show a stale value after returning from the screensaver.
+  During screensaver, `ha_battery.on_value` LVGL updates are deliberately skipped (screensaver guard).
+  `deactivate_screensaver` called `update_batt_display` and `update_batt_icon_state` but did not
+  refresh `val_battery` text or color. If SOC changed while the screensaver was running (e.g. 99.7 → 99.3),
+  the display remained at the pre-screensaver value until HA sent the next SOC update.
+  Fix: restore `val_battery` text and color from the cached `g_batt_soc_val` at the end of
+  `deactivate_screensaver`, consistent with how other tiles are already restored on screensaver exit.
+
+---
+
 ## [v1.0.1] — 2026-06-28 — Screensaver OOM Fix + Documentation Updates
 
 ### Fixed
