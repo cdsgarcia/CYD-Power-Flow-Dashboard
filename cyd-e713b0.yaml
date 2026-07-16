@@ -592,9 +592,10 @@ script:
   #            current > +0.5A  → state 1 charge    (step up toward battery_full)
   #            else             → state 0 static    (icon managed by ha_battery)
   #
-  # Always resets g_batt_anim_step to the current SOC glyph index so cycling
-  # starts from the real battery level. When going static, restores the correct
-  # glyph+color immediately (ha_battery.on_value only fires on SOC change).
+  # Always resets g_batt_anim_step to the current SOC glyph index **only on state change**
+  # (same pattern as update_solar_icon_state). Repeated same-state calls (e.g. current sensor
+  # firing every 5s while still charging) do NOT reset the step — animation continues where it was.
+  # When going static, restores the correct glyph+color immediately.
   - id: update_batt_icon_state
     then:
       - lambda: |-
@@ -614,9 +615,14 @@ script:
           int start = (soc >= 98) ? 0 : (soc >= 85) ? 1 : (soc >= 70) ? 2 :
                       (soc >= 55) ? 3 : (soc >= 40) ? 4 : (soc >= 25) ? 5 : 6;
 
-          // Reset step to current real SOC level so animation begins from correct position
-          id(g_batt_anim_step)  = start;
+          int prev_state = id(g_batt_anim_state);
           id(g_batt_anim_state) = new_state;
+
+          // Reset step ONLY on state change — mirrors update_solar_icon_state behaviour.
+          // If the state is unchanged (e.g. current sensor fires every 5s while still charging),
+          // do NOT reset the step so the animation continues from where it was.
+          if (new_state != prev_state)
+            id(g_batt_anim_step) = start;
 
           // When going static (e.g. current drops to idle), restore the icon immediately.
           // ha_battery.on_value won't fire again until SOC changes, so we set it here.
