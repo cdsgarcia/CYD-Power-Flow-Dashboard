@@ -4,6 +4,22 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.1.1] — 2026-07-16 — Solar & Home Load Stale Display Fix
+
+### Fixed
+- Solar Power and Home Load tiles could show stale values after returning from the screensaver.
+  Same root cause as the v1.1.0 Battery SOC fix: `val_solar`, `val_home`, `icon_home` and their
+  unit labels are only refreshed in `on_value` handlers which are skipped during screensaver.
+  If values changed while the screensaver ran (e.g. PV dropped to 0 W), they stayed stale on return
+  until HA sent the next sensor update.
+
+### Changed
+- Added `g_home_val` global to cache the Home Load sensor value (mirrors `g_solar_val` pattern).
+- `deactivate_screensaver` now restores Solar, Home Load, and Battery SOC labels/colors/units
+  from their respective cached globals on every screensaver exit.
+
+---
+
 ## [v1.1.0] — 2026-07-16 — Battery SOC Stale Display Fix
 
 ### Fixed
