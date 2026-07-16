@@ -201,6 +201,10 @@ globals:
     type: float
     restore_value: false
     initial_value: '0'
+  - id: g_home_val         # cached ${home_entity} (VA)
+    type: float
+    restore_value: false
+    initial_value: '0'
   - id: g_solar_anim_state # 0=static(no-sun day)  1=glyph-cycle(producing)  2=glyph-cycle(night no-power)
     type: int
     restore_value: false
@@ -740,9 +744,39 @@ script:
           id(update_batt_display).execute();     // refresh Battery Power / Time tile
           id(update_batt_icon_state).execute();  // restore correct battery icon animation
           id(update_solar_icon_state).execute(); // restore correct solar icon animation (power/time may have changed)
-          // Refresh Battery SOC label — val_battery is only updated in ha_battery.on_value which is
-          // skipped during screensaver. Restore now from cache so display is never stale on return.
+          // Restore labels skipped during screensaver — val_solar/val_home/val_battery only update
+          // in their on_value handlers which are guarded. Restore from cache on every screensaver exit.
           {
+            // Solar Power
+            float sv = id(g_solar_val);
+            char buf[12];
+            if      (sv >= 1000) snprintf(buf, sizeof(buf), "%.2f", sv / 1000.0f);
+            else if (sv >= 100)  snprintf(buf, sizeof(buf), "%.0f", sv);
+            else if (sv >= 10)   snprintf(buf, sizeof(buf), "%.1f", sv);
+            else                 snprintf(buf, sizeof(buf), "%.2f", sv);
+            lv_label_set_text(id(val_solar), buf);
+            lv_label_set_text_static(id(val_solar_unit), (sv >= 1000) ? "kW" : "W");
+            lv_color_t sc = (sv > 3600) ? lv_color_hex(0x00FF00) : (sv > 2000) ? lv_color_hex(0x0096FF) :
+                            (sv > 900)  ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_obj_set_style_text_color(id(val_solar), sc, 0);
+          }
+          {
+            // Home Load
+            float hv = id(g_home_val);
+            char buf[12];
+            if      (hv >= 1000) snprintf(buf, sizeof(buf), "%.2f", hv / 1000.0f);
+            else if (hv >= 100)  snprintf(buf, sizeof(buf), "%.0f", hv);
+            else if (hv >= 10)   snprintf(buf, sizeof(buf), "%.1f", hv);
+            else                 snprintf(buf, sizeof(buf), "%.2f", hv);
+            lv_label_set_text(id(val_home), buf);
+            lv_label_set_text_static(id(val_home_unit), (hv >= 1000) ? "kVA" : "VA");
+            lv_color_t hc = (hv < 1000) ? lv_color_hex(0x00FF00) : (hv < 2000) ? lv_color_hex(0x0096FF) :
+                            (hv < 3000) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_obj_set_style_text_color(id(val_home), hc, 0);
+            lv_obj_set_style_text_color(id(icon_home), hc, 0);
+          }
+          {
+            // Battery SOC
             float soc = id(g_batt_soc_val);
             char buf[10];
             if      (soc >= 100) snprintf(buf, sizeof(buf), "%.0f", soc);
@@ -946,12 +980,13 @@ sensor:
 
   # ── Home Load (apparent power — VA/kVA) ─────────────────────
   # LVGL updates skipped during screensaver — widget on main_page (not visible).
-  # Self-corrects within ~5s of screensaver exit on next sensor update.
+  # g_home_val cached always so deactivate_screensaver can restore val_home on return.
   - platform: homeassistant
     id: ha_home
     entity_id: ${home_entity}
     on_value:
       then:
+        - lambda: id(g_home_val) = x;
         - if:
             condition:
               lambda: 'return !id(g_screensaver);'
