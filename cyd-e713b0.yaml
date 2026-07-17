@@ -43,6 +43,21 @@ substitutions:
   #  configured directly on the ESPHome device card in HA
   # ────────────────────────────────────────────────────────────
   ha_url: "http://192.168.8.60:8123"
+  # ────────────────────────────────────────────────────────────
+  #  BATTERY ICON THRESHOLDS — edit here, applies everywhere
+  #  Glyph thresholds (SOC %) ─ update_batt_icon_state + 250ms interval
+  batt_thresh_alert: "10"   # below this → flashing alert      🟠 Orange
+  batt_thresh_1bar:  "25"   # battery_1_bar                    🟡 Yellow
+  batt_thresh_2bar:  "40"   # battery_2_bar                    🟡 Yellow
+  batt_thresh_3bar:  "55"   # battery_3_bar                    🔵 Blue
+  batt_thresh_4bar:  "70"   # battery_4_bar                    🔵 Blue
+  batt_thresh_5bar:  "85"   # battery_5_bar                    🟢 Green
+  batt_thresh_full:  "98"   # battery_full                     🟢 Green
+  #  Color thresholds (SOC %) ─ icon_battery + val_battery
+  batt_color_green:  "80"   # ≥ this → 🟢 Green
+  batt_color_blue:   "50"   # ≥ this → 🔵 Blue
+  batt_color_yellow: "25"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
+  # ────────────────────────────────────────────────────────────
 
 esphome:
   name: ${name}
@@ -605,15 +620,15 @@ script:
 
           // Determine new animation state (alert has highest priority)
           int new_state;
-          if      (soc < 10.0f) new_state = 3;  // alert: SOC critical (<10%)
+          if      (soc < ${batt_thresh_alert}.0f) new_state = 3;  // alert: SOC critical (<${batt_thresh_alert}%)
           else if (cur < -0.5f)  new_state = 2;  // discharging
           else if (cur >  0.5f)  new_state = 1;  // charging
           else                   new_state = 0;  // static/idle
 
           // Map SOC% to glyph index: 0=battery_full … 6=battery_0_bar
           // (alert glyph index 7 is handled by state 3; not used as a step value)
-          int start = (soc >= 98) ? 0 : (soc >= 85) ? 1 : (soc >= 70) ? 2 :
-                      (soc >= 55) ? 3 : (soc >= 40) ? 4 : (soc >= 25) ? 5 : 6;
+          int start = (soc >= ${batt_thresh_full}) ? 0 : (soc >= ${batt_thresh_5bar}) ? 1 : (soc >= ${batt_thresh_4bar}) ? 2 :
+                      (soc >= ${batt_thresh_3bar}) ? 3 : (soc >= ${batt_thresh_2bar}) ? 4 : (soc >= ${batt_thresh_1bar}) ? 5 : 6;
 
           int prev_state = id(g_batt_anim_state);
           id(g_batt_anim_state) = new_state;
@@ -789,9 +804,9 @@ script:
             else if (soc >= 10)  snprintf(buf, sizeof(buf), "%.1f", soc);
             else                 snprintf(buf, sizeof(buf), "%.2f", soc);
             lv_label_set_text(id(val_battery), buf);
-            lv_color_t clr = (soc >= 80) ? lv_color_hex(0x00FF00) :
-                             (soc >= 50) ? lv_color_hex(0x0096FF) :
-                             (soc >= 25) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_color_t clr = (soc >= ${batt_color_green}) ? lv_color_hex(0x00FF00) :
+                             (soc >= ${batt_color_blue}) ? lv_color_hex(0x0096FF) :
+                             (soc >= ${batt_color_yellow}) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
             lv_obj_set_style_text_color(id(val_battery), clr, 0);
           }
           lv_scr_load_anim(id(main_page)->obj, anim, (int)id(ss_anim_ms).state, 0, false);
@@ -1040,18 +1055,18 @@ sensor:
               - lvgl.label.update:
                   id: icon_battery
                   text: !lambda |-
-                    if (x >= 98) return "\ue1a4";
-                    if (x >= 85) return "\uebd4";
-                    if (x >= 70) return "\uebe2";
-                    if (x >= 55) return "\uebdd";
-                    if (x >= 40) return "\uebe0";
-                    if (x >= 25) return "\uebd9";
-                    if (x >= 10) return "\uebdc";  // ≥10% = 0_bar; <10% = alert
+                    if (x >= ${batt_thresh_full}) return "\ue1a4";
+                    if (x >= ${batt_thresh_5bar}) return "\uebd4";
+                    if (x >= ${batt_thresh_4bar}) return "\uebe2";
+                    if (x >= ${batt_thresh_3bar}) return "\uebdd";
+                    if (x >= ${batt_thresh_2bar}) return "\uebe0";
+                    if (x >= ${batt_thresh_1bar}) return "\uebd9";
+                    if (x >= ${batt_thresh_alert}) return "\uebdc";  // ≥${batt_thresh_alert}% = 0_bar; below = alert
                     return "\ue19c";
                   text_color: !lambda |-
-                    if (x >= 80) return lv_color_hex(0x00FF00);
-                    if (x >= 50) return lv_color_hex(0x0096FF);
-                    if (x >= 25) return lv_color_hex(0xFFFF00);  // ≥25% Yellow — matches battery_1_bar glyph
+                    if (x >= ${batt_color_green}) return lv_color_hex(0x00FF00);
+                    if (x >= ${batt_color_blue}) return lv_color_hex(0x0096FF);
+                    if (x >= ${batt_color_yellow}) return lv_color_hex(0xFFFF00);  // ≥${batt_color_yellow}% Yellow — matches battery_1_bar glyph
                     return lv_color_hex(0xFFA500);
               - lvgl.label.update:
                   id: val_battery
@@ -1060,9 +1075,9 @@ sensor:
                     if (x >= 10) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
-                    if (x >= 80) return lv_color_hex(0x00FF00);
-                    if (x >= 50) return lv_color_hex(0x0096FF);
-                    if (x >= 25) return lv_color_hex(0xFFFF00);  // ≥25% Yellow — matches battery_1_bar glyph
+                    if (x >= ${batt_color_green}) return lv_color_hex(0x00FF00);
+                    if (x >= ${batt_color_blue}) return lv_color_hex(0x0096FF);
+                    if (x >= ${batt_color_yellow}) return lv_color_hex(0xFFFF00);  // ≥${batt_color_yellow}% Yellow — matches battery_1_bar glyph
                     return lv_color_hex(0xFFA500);
         - lambda: id(update_batt_icon_state).execute();  // always run — re-evaluate animation state (has internal screensaver guard)
 
@@ -1420,8 +1435,8 @@ interval:
               } else if (s_tick % 4 == 0) {
                 // Charging / Discharging: advance glyph every 1000ms
                 float soc = id(g_batt_soc_val);
-                int bstart = (soc >= 98) ? 0 : (soc >= 85) ? 1 : (soc >= 70) ? 2 :
-                             (soc >= 55) ? 3 : (soc >= 40) ? 4 : (soc >= 25) ? 5 : 6;
+                int bstart = (soc >= ${batt_thresh_full}) ? 0 : (soc >= ${batt_thresh_5bar}) ? 1 : (soc >= ${batt_thresh_4bar}) ? 2 :
+                             (soc >= ${batt_thresh_3bar}) ? 3 : (soc >= ${batt_thresh_2bar}) ? 4 : (soc >= ${batt_thresh_1bar}) ? 5 : 6;
                 int bstep = id(g_batt_anim_step);
                 if (state == 1) {
                   if (--bstep < 0) bstep = bstart;  // charging: up to full, wrap to SOC level

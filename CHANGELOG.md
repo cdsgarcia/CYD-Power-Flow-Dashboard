@@ -4,6 +4,27 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.2.0] — 2026-07-18 — Battery Threshold Substitutions
+
+### Changed
+- Battery icon glyph and color thresholds are now declared as named substitutions at the top of
+  `cyd-e713b0.yaml`, making them easy to adjust in one place without hunting through the YAML.
+  Applied to both `cyd-e713b0.yaml` and `cyd-78d27c.yaml`.
+
+  ```yaml
+  # Glyph thresholds (SOC %)
+  batt_thresh_alert: "10"   batt_thresh_1bar: "25"   batt_thresh_2bar: "40"
+  batt_thresh_3bar:  "55"   batt_thresh_4bar: "70"   batt_thresh_5bar: "85"
+  batt_thresh_full:  "98"
+  # Color thresholds (SOC %)
+  batt_color_green: "80"   batt_color_blue: "50"   batt_color_yellow: "25"
+  ```
+
+  Substitutions are compile-time text replacements — zero runtime or heap overhead.
+  Changing a value here and reflashing applies it across all locations automatically.
+
+---
+
 ## [v1.1.2] — 2026-07-16 — Battery Icon Animation Restart Fix
 
 ### Fixed

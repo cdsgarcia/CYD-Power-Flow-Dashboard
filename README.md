@@ -86,6 +86,32 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 
 ---
 
+## Customisation
+
+### Battery Icon Thresholds
+
+Battery icon glyph and color thresholds are declared as named substitutions at the top of the YAML — edit them once and they apply everywhere automatically on the next flash.
+
+```yaml
+# Glyph thresholds (SOC %) — controls which glyph icon is shown
+batt_thresh_alert: "10"   # below this → flashing alert      🟠 Orange
+batt_thresh_1bar:  "25"   # battery_1_bar                    🟡 Yellow
+batt_thresh_2bar:  "40"   # battery_2_bar                    🟡 Yellow
+batt_thresh_3bar:  "55"   # battery_3_bar                    🔵 Blue
+batt_thresh_4bar:  "70"   # battery_4_bar                    🔵 Blue
+batt_thresh_5bar:  "85"   # battery_5_bar                    🟢 Green
+batt_thresh_full:  "98"   # battery_full                     🟢 Green
+
+# Color thresholds (SOC %) — controls icon_battery + val_battery text color
+batt_color_green:  "80"   # ≥ this → 🟢 Green
+batt_color_blue:   "50"   # ≥ this → 🔵 Blue
+batt_color_yellow: "25"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
+```
+
+> Substitutions are compile-time text replacements — zero runtime or heap overhead.
+
+---
+
 ## Installation
 
 Choose the method that matches your setup. For full step-by-step instructions including Windows setup, USB drivers, web flasher, and troubleshooting, see the **[Installation wiki page](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/wiki/Installation)**.
