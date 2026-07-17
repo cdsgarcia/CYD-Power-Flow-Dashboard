@@ -4,6 +4,20 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.2.2] — 2026-07-18 — Battery Power & Time Estimate Threshold Substitutions
+
+### Changed
+- Battery Power (slot 0) thresholds updated and converted to substitutions:
+  - New scale: ≥ 3600 W 🟢 / ≥ 2000 W 🔵 / > 0 W 🟡 / **= 0 W 🩶 Grey** / < 0 W 🟠
+  - Grey (`0x888888`) at exactly 0 W — matches the cloud icon on PV Power — clearly shows no charging/discharging
+  - Substitutions: `batt_pwr_green` / `batt_pwr_blue` / `batt_pwr_yellow`
+- Battery Time Estimate (slot 1) colors converted to substitutions:
+  - Charging: `batt_chg_green_h` (2h) / `batt_chg_blue_h` (4h) / `batt_chg_yellow_h` (6h)
+  - Discharging: `batt_dis_orange_h` (3h) / `batt_dis_yellow_h` (6h) / `batt_dis_blue_h` (9h)
+- Applied to both `cyd-e713b0.yaml` and `cyd-78d27c.yaml`.
+
+---
+
 ## [v1.2.1] — 2026-07-18 — Home & Load Slot Color Threshold Substitutions
 
 ### Changed
