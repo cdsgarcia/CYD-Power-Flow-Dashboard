@@ -4,7 +4,28 @@ All notable changes to this project are documented here.
 
 ---
 
-## [v1.2.0] — 2026-07-18 — Battery Threshold Substitutions
+## [v1.2.1] — 2026-07-18 — Home & Load Slot Color Threshold Substitutions
+
+### Changed
+- Added named substitutions for Home Apparent Power and Load slot (Load1/Load2/Load3) color
+  thresholds — edit once in `substitutions:`, applied everywhere on next flash. Zero runtime overhead.
+
+  ```yaml
+  # Home Apparent Power color thresholds (VA)
+  home_color_green: "1000"   home_color_blue: "2000"   home_color_yellow: "3000"
+  # Load slot color thresholds (W) — each load independent
+  load2_color_green: "700"   load2_color_blue: "1000"   load2_color_yellow: "1200"
+  load3_color_green: "700"   load3_color_blue: "1000"   load3_color_yellow: "1200"
+  load1_color_green: "700"   load1_color_blue: "1000"   load1_color_yellow: "1200"
+  ```
+- `update_slot_display` (E713B0) now selects per-slot threshold variables based on `g_slot_idx`
+  instead of a single shared formula — Load1, Load2, Load3 can each have different thresholds.
+- `update_ac_slot_display` (78D27C) similarly selects Load2 vs Load3 thresholds per slot.
+- Applied to both `cyd-e713b0.yaml` and `cyd-78d27c.yaml`.
+
+---
+
+
 
 ### Changed
 - Battery icon glyph and color thresholds are now declared as named substitutions at the top of

@@ -58,6 +58,26 @@ substitutions:
   batt_color_blue:   "50"   # ≥ this → 🔵 Blue
   batt_color_yellow: "25"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
   # ────────────────────────────────────────────────────────────
+  #  HOME APPARENT POWER color thresholds (VA)
+  home_color_green:  "1000"   # < this → 🟢 Green
+  home_color_blue:   "2000"   # < this → 🔵 Blue
+  home_color_yellow: "3000"   # < this → 🟡 Yellow  (≥ this → 🟠 Orange)
+  # ────────────────────────────────────────────────────────────
+  #  LOAD SLOT color thresholds (W) — each load has independent thresholds
+  #  ≤ 0 W always → 🟡 Yellow (idle/no data)
+  # Load 2 — default: A/C 1st Floor
+  load2_color_green:  "700"   # < this → 🟢 Green
+  load2_color_blue:   "1000"  # < this → 🔵 Blue
+  load2_color_yellow: "1200"  # < this → 🟡 Yellow  (≥ this → 🟠 Orange)
+  # Load 3 — default: A/C 2nd Floor
+  load3_color_green:  "700"
+  load3_color_blue:   "1000"
+  load3_color_yellow: "1200"
+  # Load 1 — default: Ecoflow River 3
+  load1_color_green:  "700"
+  load1_color_blue:   "1000"
+  load1_color_yellow: "1200"
+  # ────────────────────────────────────────────────────────────
 
 esphome:
   name: ${name}
@@ -250,10 +270,16 @@ script:
             lv_obj_clear_flag(id(icon_slot), LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(id(icon_load1), LV_OBJ_FLAG_HIDDEN);
           }
-          lv_color_t clr = (v <= 0)   ? lv_color_hex(0xFFFF00) :  // 0 W = idle/no data → yellow
-                           (v < 700)  ? lv_color_hex(0x00FF00) :
-                           (v < 1000) ? lv_color_hex(0x0096FF) :
-                           (v < 1200) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+          float cg = (id(g_slot_idx) == 0) ? ${load2_color_green}  :
+                     (id(g_slot_idx) == 1) ? ${load3_color_green}  : ${load1_color_green};
+          float cb = (id(g_slot_idx) == 0) ? ${load2_color_blue}   :
+                     (id(g_slot_idx) == 1) ? ${load3_color_blue}   : ${load1_color_blue};
+          float cy = (id(g_slot_idx) == 0) ? ${load2_color_yellow} :
+                     (id(g_slot_idx) == 1) ? ${load3_color_yellow} : ${load1_color_yellow};
+          lv_color_t clr = (v <= 0)  ? lv_color_hex(0xFFFF00) :  // 0 W = idle/no data → yellow
+                           (v < cg)  ? lv_color_hex(0x00FF00) :
+                           (v < cb)  ? lv_color_hex(0x0096FF) :
+                           (v < cy)  ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
           lv_obj_set_style_text_color(id(icon_slot), clr, 0);
           lv_obj_set_style_text_color(id(icon_load1), clr, 0);
           lv_obj_set_style_text_color(id(val_slot), clr, 0);
@@ -791,8 +817,8 @@ script:
             else                 snprintf(buf, sizeof(buf), "%.2f", hv);
             lv_label_set_text(id(val_home), buf);
             lv_label_set_text_static(id(val_home_unit), (hv >= 1000) ? "kVA" : "VA");
-            lv_color_t hc = (hv < 1000) ? lv_color_hex(0x00FF00) : (hv < 2000) ? lv_color_hex(0x0096FF) :
-                            (hv < 3000) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_color_t hc = (hv < ${home_color_green}) ? lv_color_hex(0x00FF00) : (hv < ${home_color_blue}) ? lv_color_hex(0x0096FF) :
+                            (hv < ${home_color_yellow}) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
             lv_obj_set_style_text_color(id(val_home), hc, 0);
             lv_obj_set_style_text_color(id(icon_home), hc, 0);
           }
@@ -1020,16 +1046,16 @@ sensor:
                     if (x >= 10) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
-                    if (x < 1000) return lv_color_hex(0x00FF00);
-                    if (x < 2000) return lv_color_hex(0x0096FF);
-                    if (x < 3000) return lv_color_hex(0xFFFF00);
+                    if (x < ${home_color_green}) return lv_color_hex(0x00FF00);
+                    if (x < ${home_color_blue}) return lv_color_hex(0x0096FF);
+                    if (x < ${home_color_yellow}) return lv_color_hex(0xFFFF00);
                     return lv_color_hex(0xFFA500);
               - lvgl.label.update:
                   id: icon_home
                   text_color: !lambda |-
-                    if (x < 1000) return lv_color_hex(0x00FF00);
-                    if (x < 2000) return lv_color_hex(0x0096FF);
-                    if (x < 3000) return lv_color_hex(0xFFFF00);
+                    if (x < ${home_color_green}) return lv_color_hex(0x00FF00);
+                    if (x < ${home_color_blue}) return lv_color_hex(0x0096FF);
+                    if (x < ${home_color_yellow}) return lv_color_hex(0xFFFF00);
                     return lv_color_hex(0xFFA500);
               - lvgl.label.update:
                   id: val_home_unit
