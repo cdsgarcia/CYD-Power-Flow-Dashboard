@@ -38,6 +38,8 @@ substitutions:
   batt_current_entity:         "sensor.total_battery_current"
   srne_charge_limit_entity:    "number.srne_batttery_charge_limit"    # note: 'batttery' typo is in the HA entity name
   srne_discharge_limit_entity: "number.srne_batttery_discharge_limit" # note: 'batttery' typo is in the HA entity name
+  # ── Doorbell ─────────────────────────────────────────────────
+  doorbell_entity:             "input_button.doorbell"
   # ────────────────────────────────────────────────────────────
   #  SCREENSAVER — update ha_url if needed; timers are
   #  configured directly on the ESPHome device card in HA
@@ -159,7 +161,7 @@ wifi:
 
 captive_portal:
 
-# ── Globals ───────────────────────────────────────────────────
+# Globals comment — categories:
 # Screensaver state:      g_screensaver / g_pf_secs / g_photo_secs / g_photo_idx / g_photo_order / g_photo_trans
 #                         g_photo_queue / g_photo_queue_pos   ← persistent queue across activations
 # Home Load Slot cycling: g_slot_idx / g_slot_secs / g_load1_val / g_load2_val / g_load3_val
@@ -167,6 +169,7 @@ captive_portal:
 #                         g_srne_charge_limit_val / g_srne_discharge_limit_val
 # Battery icon animation: g_batt_anim_state / g_batt_anim_step
 # Solar icon animation:   g_solar_val / g_solar_anim_state / g_solar_anim_step
+# Doorbell:               g_doorbell_active / g_doorbell_ticks / g_doorbell_last_state
 globals:
   # LVGL ready flag — false until on_boot (priority -10) fires after lvgl::setup()
   # Guards any LVGL call that may fire from on_value during component setup
@@ -269,8 +272,21 @@ globals:
     restore_value: false
     initial_value: '0'
 
+  # ── Doorbell alert ──────────────────────────────────────────
+  - id: g_doorbell_active   # true while back RGB LED alert is flashing
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+  - id: g_doorbell_ticks    # countdown in 250ms ticks
+    type: int
+    restore_value: false
+    initial_value: '0'
+  - id: g_doorbell_last_state  # last HA state seen; empty = not yet received (skip first boot delivery)
+    type: std::string
+    restore_value: false
+    initial_value: '""'
+
 script:
-  # ── Home Load Slot Display ───────────────────────────────────
   # Called by: sensor on_value (when active slot matches), advance_slot,
   # deactivate_screensaver, and on_boot (priority -10).
   # Uses raw LVGL C API — id(widget) returns lv_obj_t* for regular widgets.
@@ -1236,6 +1252,20 @@ output:
     pin: GPIO21
     id: backlight_output
 
+  # RGB LED (common anode — active LOW): GPIO4=R  GPIO16=G  GPIO17=B
+  - platform: ledc
+    pin: GPIO4
+    id: led_red_output
+    inverted: true
+  - platform: ledc
+    pin: GPIO16
+    id: led_green_output
+    inverted: true
+  - platform: ledc
+    pin: GPIO17
+    id: led_blue_output
+    inverted: true
+
 light:
   - platform: monochromatic
     output: backlight_output
@@ -1457,6 +1487,27 @@ interval:
   - interval: 250ms
     then:
       - lambda: |-
+          // ── Doorbell LED flash — runs regardless of screensaver state ──────────
+          if (id(g_doorbell_active)) {
+            static const uint32_t DB_COLORS[] = {
+              0xFF0000, 0xFF8800, 0xFFFF00, 0x00FF00,
+              0x0088FF, 0x8800FF, 0xFF00FF, 0xFFFFFF
+            };
+            uint32_t db_col = DB_COLORS[esp_random() % 8];
+            if (id(doorbell_led_enabled).state) {
+              id(led_red_output).set_level(  ((db_col >> 16) & 0xFF) / 255.0f);
+              id(led_green_output).set_level(((db_col >>  8) & 0xFF) / 255.0f);
+              id(led_blue_output).set_level( ( db_col        & 0xFF) / 255.0f);
+            }
+            if (--id(g_doorbell_ticks) <= 0) {
+              id(g_doorbell_active) = false;
+              id(led_red_output).set_level(0.0f);
+              id(led_green_output).set_level(0.0f);
+              id(led_blue_output).set_level(0.0f);
+              ESP_LOGW("doorbell", "Doorbell LED alert dismissed");
+            }
+          }
+
           if (!id(g_lvgl_ready) || id(g_screensaver)) return;
 
           static int s_tick = 0;
@@ -1692,6 +1743,19 @@ number:
     optimistic: true
     unit_of_measurement: "h"
 
+  - platform: template
+    name: "Doorbell Duration"
+    id: doorbell_duration_secs
+    entity_category: config
+    mode: box
+    min_value: 3
+    max_value: 30
+    step: 1
+    initial_value: 5
+    restore_value: true
+    optimistic: true
+    unit_of_measurement: "s"
+
 # ── Select Controls (HA) ──────────────────────────────────────
 select:
   - platform: template
@@ -1777,6 +1841,23 @@ switch:
     optimistic: true
     restore_mode: RESTORE_DEFAULT_OFF
 
+  # ── Doorbell alert enable ──────────────────────────────────────
+  - platform: template
+    name: "Doorbell Enabled"
+    id: doorbell_enabled
+    entity_category: config
+    icon: "mdi:bell-ring-outline"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  - platform: template
+    name: "Doorbell LED Enabled"
+    id: doorbell_led_enabled
+    entity_category: config
+    icon: "mdi:led-on"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
 # Human-readable time strings for dashboard display (not graphable).
 # Pair with batt_full_at_min / batt_empty_at_min for graphing.
 # States:
@@ -1788,6 +1869,48 @@ switch:
 #   Discharging but estimate not shown → "Discharging"
 #   No activity → "Not Charging" / "Not Discharging"
 text_sensor:
+  # ── Doorbell trigger ────────────────────────────────────────
+  # input_button state changes to a new timestamp on every press.
+  # on_value fires on each change → triggers the RGB LED alert.
+  # Display is not affected — only the back RGB LED flashes.
+  - platform: homeassistant
+    id: ha_doorbell
+    entity_id: ${doorbell_entity}
+    on_value:
+      then:
+        - lambda: |-
+            // On boot / HA-reconnect HA sends two deliveries:
+            //   1. "unavailable"  (entity briefly offline)
+            //   2. last-pressed timestamp  (entity restored)
+            // Both must be absorbed; only a subsequent NEW timestamp is a real press.
+            std::string cur = x;
+            bool prev_unready = id(g_doorbell_last_state).empty()
+                             || id(g_doorbell_last_state) == "unavailable";
+            if (cur == "unavailable") {
+              id(g_doorbell_last_state) = cur;
+              ESP_LOGD("doorbell", "State unavailable — reset baseline");
+              return;
+            }
+            if (prev_unready) {
+              id(g_doorbell_last_state) = cur;
+              ESP_LOGD("doorbell", "Baseline state '%s' — skipped (boot/reconnect)", cur.c_str());
+              return;
+            }
+            if (cur == id(g_doorbell_last_state)) return;  // duplicate delivery, ignore
+            id(g_doorbell_last_state) = cur;
+            if (!id(doorbell_enabled).state) return;
+            if (id(g_doorbell_active)) return;  // ignore while alert is already showing
+            id(g_doorbell_active) = true;
+            id(g_doorbell_ticks)  = (int)(id(doorbell_duration_secs).state * 4.0f);
+            ESP_LOGW("doorbell", "Doorbell pressed — LED alert starting (%.0fs)",
+              id(doorbell_duration_secs).state);
+            // Start red; 250ms interval takes over immediately
+            if (id(doorbell_led_enabled).state) {
+              id(led_red_output).set_level(1.0f);
+              id(led_green_output).set_level(0.0f);
+              id(led_blue_output).set_level(0.0f);
+            }
+
   - platform: template
     name: "Battery Full At Time"
     id: batt_full_at_time
