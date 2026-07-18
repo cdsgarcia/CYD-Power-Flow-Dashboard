@@ -966,6 +966,21 @@ time:
                 else if (h > 12) h -= 12;
                 return str_sprintf("%d:%02d:%02d %s", h, t.tm_min, t.tm_sec, ampm);
 
+      # Daily restart — fires at HH:00:00 every hour; reboots only at configured PHT hour
+      - seconds: 0
+        minutes: 0
+        then:
+          - lambda: |-
+              if (!id(daily_restart_enabled).state) return;
+              auto now = id(ha_time).now();
+              if (!now.is_valid()) return;
+              time_t pht = now.timestamp + (8 * 3600);
+              struct tm t; gmtime_r(&pht, &t);
+              if (t.tm_hour == (int)id(daily_restart_hour).state) {
+                ESP_LOGW("restart", "Daily restart at %02d:00 PHT", t.tm_hour);
+                App.safe_reboot();
+              }
+
 # ── Debug (heap monitoring) ──────────────────────────────────
 # Exposes SRAM heap metrics as HA sensors for real-time monitoring.
 # Zero heap impact: measurement calls only read FreeRTOS internal metadata.
@@ -1751,10 +1766,25 @@ number:
     min_value: 3
     max_value: 30
     step: 1
-    initial_value: 5
+    initial_value: 10
     restore_value: true
     optimistic: true
     unit_of_measurement: "s"
+
+  # Daily restart — PHT hour (0–23, default 3 = 3 AM)
+  - platform: template
+    name: "Daily Restart Hour"
+    id: daily_restart_hour
+    entity_category: config
+    icon: "mdi:restart-alert"
+    mode: box
+    min_value: 0
+    max_value: 23
+    step: 1
+    initial_value: 3
+    restore_value: true
+    optimistic: true
+    unit_of_measurement: "hr"
 
 # ── Select Controls (HA) ──────────────────────────────────────
 select:
@@ -1857,6 +1887,15 @@ switch:
     icon: "mdi:led-on"
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+
+  # ── Daily restart enable ───────────────────────────────────────
+  - platform: template
+    name: "Daily Restart Enabled"
+    id: daily_restart_enabled
+    entity_category: config
+    icon: "mdi:restart-alert"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
 
 # Human-readable time strings for dashboard display (not graphable).
 # Pair with batt_full_at_min / batt_empty_at_min for graphing.
