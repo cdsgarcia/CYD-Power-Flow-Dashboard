@@ -21,9 +21,11 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 - **Real-time power flow** — Solar, Home Load, Battery SOC + Power, all updated live from Home Assistant
 - **Battery time estimate** — Calculates and displays target charge/discharge completion time
 - **Animated icons** — Battery icon animates charging/discharging direction; solar icon animates production with sun ping-pong (day) or moon cycle (night)
+- **Doorbell alert** — Back RGB LED flashes rainbow colors when HA `input_button.doorbell` is pressed; works during screensaver
 - **Photo screensaver** — Cycles through photos from your HA `/local/screensaver/` folder with fade/slide/instant transitions
 - **Configurable from HA** — Timers, thresholds, labels, brightness, screensaver settings all exposed as HA entities
 - **PHT clock** — Clock header always shows correct local time (UTC+8) regardless of HA timezone config
+- **Daily restart** — Optional scheduled reboot at a configurable hour (disabled by default)
 - **Heap monitoring** — Exposes SRAM free/largest-block sensors to HA for OOM diagnostics
 
 ---
@@ -47,6 +49,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 | TFT SPI | CLK=GPIO14, MOSI=GPIO13, MISO=GPIO12, CS=GPIO15, DC=GPIO2 |
 | Backlight | GPIO21 (LEDC PWM) |
 | Touch SPI | CLK=GPIO25, MOSI=GPIO32, MISO=GPIO39, CS=GPIO33, IRQ=GPIO36 |
+| RGB LED (back, common anode) | R=GPIO4, G=GPIO16, B=GPIO17 (LEDC, active LOW) |
 
 ---
 
@@ -83,6 +86,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 | `batt_current_entity` | `sensor.total_battery_current` | Battery current A (negative = discharging) |
 | `srne_charge_limit_entity` | `number.srne_batttery_charge_limit` | Charge limit % |
 | `srne_discharge_limit_entity` | `number.srne_batttery_discharge_limit` | Discharge limit % |
+| `doorbell_entity` | `input_button.doorbell` | HA input button for doorbell alert |
 
 ---
 
@@ -186,6 +190,11 @@ After flashing, the device exposes the following controls in HA:
 | Batt Time Threshold | Number | Hours threshold to show time estimate |
 | Batt Time Estimate | Switch | Enable/disable battery time estimate |
 | Load 1/2/3 Label | Text | Customisable labels for load slots |
+| Doorbell Enabled | Switch | Enable/disable doorbell RGB LED alert |
+| Doorbell LED Enabled | Switch | Enable/disable back LED flash independently |
+| Doorbell Duration Secs | Number | How long the LED flashes (3–30 s, default 10) |
+| Daily Restart Hour | Number | PHT hour to reboot daily (0–23, default 3) |
+| Daily Restart Enabled | Switch | Enable daily restart (default OFF) |
 
 ---
 

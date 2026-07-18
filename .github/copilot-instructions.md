@@ -102,6 +102,29 @@ HA controls:
 | Batt Time Estimate | `batt_time_enabled` | switch | ON |
 | Batt Log Enabled | `batt_log_enabled` | switch | OFF |
 
+---
+
+## Doorbell HA Controls
+
+| Entity | ID | Range / Type | Default |
+|--------|----|-------------|---------|
+| Doorbell Enabled | `doorbell_enabled` | switch | ON |
+| Doorbell LED Enabled | `doorbell_led_enabled` | switch | ON |
+| Doorbell Duration Secs | `doorbell_duration_secs` | 3–30 s | 10 |
+
+LED-only — no screen effect on E713B0. LED block runs before screensaver gate so it flashes even during screensaver.
+
+---
+
+## Daily Restart HA Controls
+
+| Entity | ID | Range / Type | Default |
+|--------|----|-------------|---------|
+| Daily Restart Hour | `daily_restart_hour` | 0–23 hr | 3 |
+| Daily Restart Enabled | `daily_restart_enabled` | switch | **OFF** |
+
+Fires via `on_time: seconds: 0, minutes: 0` (top of every hour); checks PHT hour via `gmtime_r`.
+
 Published HA sensors (throttled 60s, first call always immediate):
 
 | Entity | ID | Unit | Notes |
