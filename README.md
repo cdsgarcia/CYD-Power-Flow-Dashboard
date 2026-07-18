@@ -56,7 +56,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 ┌─────────────────────────────────┐
 │          HH:MM:SS AM/PM         │  Clock header
 ├────────────────┬────────────────┤
-│  Solar Power   │  Load Slots    │  Top-right: 3-slot cycling (A/C 1F / A/C 2F / Ecoflow)
+│  Solar Power   │  Load Slots    │  Top-right: 3-slot cycling (A/C 1F / A/C 3F / Ecoflow)
 ├─────────────────────────────────┤
 │     Battery Power (full width)  │  Cycles: W/kW ↔ charge/discharge time estimate
 ├────────────────┬────────────────┤
