@@ -4,6 +4,37 @@ All notable changes to this project are documented here.
 
 ---
 
+## [v1.2.3] — 2026-07-19 — Review Fixes, Solar Substitutions, Load Thresholds
+
+### Fixed
+- **BUG** `icon_battery` color in `update_batt_icon_state` state=0 (static/idle) was computed
+  from a glyph-index-based `COLORS[]` array that diverged from `val_battery` thresholds at
+  SOC 80–84% (icon Blue, value Green) and 50–54% (icon Yellow, value Blue). Now uses
+  `batt_color_green/blue/yellow` substitutions — icon and value always match. Removed dead
+  `COLORS[]` array. Applied to both `cyd-e713b0.yaml` and `cyd-78d27c.yaml`.
+- **BUG** `ha_load1.on_value` guard order in `cyd-78d27c.yaml` reversed — `g_demo_mode` was
+  checked before `g_lvgl_ready`. Fixed to check `g_lvgl_ready` first (consistent with all other
+  handlers and the safe-call convention).
+- **BUG** `load3_label initial_value` said "A/C 2nd Floor" in both files — corrected to "A/C 3rd Floor".
+
+### Changed
+- `batt_pwr_blue` threshold lowered from 2000 W to 900 W (new scale: ≥3600 🟢 / ≥900 🔵 / >0 🟡 / =0 🩶 / <0 🟠).
+- Removed now-redundant `batt_pwr_yellow` substitution.
+- Load slot 0 W changed from Yellow to Green (no idle penalty — any reading shown as normal).
+- Per-load thresholds updated to real-world values:
+  - Load 1 (Ecoflow River 3): green=140 W / blue=200 W / yellow=400 W
+  - Load 2 (A/C 1st Floor): green=600 W / blue=740 W / yellow=900 W
+  - Load 3 (A/C 3rd Floor): green=80 W / blue=900 W / yellow=1000 W
+- Solar Power color thresholds converted from hardcoded values to substitutions
+  (`solar_color_green=3600` / `solar_color_blue=2000` / `solar_color_yellow=900`).
+  Applied in `ha_solar.on_value` (LVGL) and `deactivate_screensaver` (E713B0 restore path).
+- All stale "A/C 2F" / "A/C 2nd Floor" comments in `cyd-78d27c.yaml` updated to "A/C 3F" / "A/C 3rd Floor".
+- Corrected `g_ac_slot_idx` global comment (0=A/C 1F / 1=A/C 3F).
+- Corrected AC cycling slot globals comment — removed incorrect `g_load1_val` listing.
+- Corrected LVGL container x-offset comment: x=+31 → x=+30 (matches actual YAML value).
+
+---
+
 ## [v1.2.2] — 2026-07-18 — Battery Power & Time Estimate Threshold Substitutions
 
 ### Changed

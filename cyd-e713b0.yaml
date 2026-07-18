@@ -64,25 +64,24 @@ substitutions:
   home_color_yellow: "3000"   # < this → 🟡 Yellow  (≥ this → 🟠 Orange)
   # ────────────────────────────────────────────────────────────
   #  LOAD SLOT color thresholds (W) — each load has independent thresholds
-  #  ≤ 0 W always → 🟡 Yellow (idle/no data)
   # Load 2 — default: A/C 1st Floor
-  load2_color_green:  "700"   # < this → 🟢 Green
-  load2_color_blue:   "1000"  # < this → 🔵 Blue
-  load2_color_yellow: "1200"  # < this → 🟡 Yellow  (≥ this → 🟠 Orange)
-  # Load 3 — default: A/C 2nd Floor
-  load3_color_green:  "700"
-  load3_color_blue:   "1000"
-  load3_color_yellow: "1200"
+  load2_color_green:  "600"   # < this → 🟢 Green
+  load2_color_blue:   "740"   # < this → 🔵 Blue
+  load2_color_yellow: "900"   # < this → 🟡 Yellow  (≥ this → 🟠 Orange)
+  # Load 3 — default: A/C 3rd Floor
+  load3_color_green:  "80"
+  load3_color_blue:   "900"
+  load3_color_yellow: "1000"
   # Load 1 — default: Ecoflow River 3
-  load1_color_green:  "700"
-  load1_color_blue:   "1000"
-  load1_color_yellow: "1200"
+  load1_color_green:  "140"
+  load1_color_blue:   "200"
+  load1_color_yellow: "400"
   # ────────────────────────────────────────────────────────────
   #  BATTERY POWER color thresholds (W) — slot 0 center display
   #  = 0 W → 🩶 Grey 0x888888 (not charging/discharging — matches cloud icon)
   batt_pwr_green:  "3600"   # ≥ this → 🟢 Green  (fast charge)
-  batt_pwr_blue:   "2000"   # ≥ this → 🔵 Blue   (moderate charge)
-  batt_pwr_yellow: "900"    # > 0 and ≥ this → 🟡 Yellow (slow charge)
+  batt_pwr_blue:   "900"    # ≥ this → 🔵 Blue   (moderate charge)
+  #  > 0 and < batt_pwr_blue → 🟡 Yellow (slow / trickle charge)
   # ────────────────────────────────────────────────────────────
   #  BATTERY TIME ESTIMATE color thresholds (hours) — slot 1 center display
   #  Charging: close to full = green; far from full = orange
@@ -93,6 +92,11 @@ substitutions:
   batt_dis_orange_h: "3"    # < this → 🟠 Orange  (almost empty)
   batt_dis_yellow_h: "6"    # < this → 🟡 Yellow
   batt_dis_blue_h:   "9"    # < this → 🔵 Blue    (≥ this → 🟢 Green)
+  # ────────────────────────────────────────────────────────────
+  #  SOLAR POWER color thresholds (W) — val_solar and deactivate_screensaver restore
+  solar_color_green:  "3600"  # > this → 🟢 Green  (strong production)
+  solar_color_blue:   "2000"  # > this → 🔵 Blue   (moderate)
+  solar_color_yellow: "900"   # > this → 🟡 Yellow (low)  (≤ this → 🟠 Orange)
   # ────────────────────────────────────────────────────────────
 
 esphome:
@@ -292,8 +296,7 @@ script:
                      (id(g_slot_idx) == 1) ? ${load3_color_blue}   : ${load1_color_blue};
           float cy = (id(g_slot_idx) == 0) ? ${load2_color_yellow} :
                      (id(g_slot_idx) == 1) ? ${load3_color_yellow} : ${load1_color_yellow};
-          lv_color_t clr = (v <= 0)  ? lv_color_hex(0xFFFF00) :  // 0 W = idle/no data → yellow
-                           (v < cg)  ? lv_color_hex(0x00FF00) :
+          lv_color_t clr = (v < cg)  ? lv_color_hex(0x00FF00) :  // 0 W = idle → green (same as low load)
                            (v < cb)  ? lv_color_hex(0x0096FF) :
                            (v < cy)  ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
           lv_obj_set_style_text_color(id(icon_slot), clr, 0);
@@ -690,14 +693,15 @@ script:
               "\ue1a4", "\uebd4", "\uebe2", "\uebdd",
               "\uebe0", "\uebd9", "\uebdc", "\ue19c"
             };
-            static const uint32_t COLORS[] = {
-              0x00FF00, 0x00FF00, 0x0096FF, 0x0096FF,
-              0xFFFF00, 0xFFFF00, 0xFFA500, 0xFFA500  // idx4=2bar idx5=1bar Yellow; idx6=0bar idx7=alert Orange
-            };
-            int idx = start;  // new_state==0 guarantees soc >= 10% (alert state 3 catches soc < 10%)
+            // new_state==0 guarantees soc >= ${batt_thresh_alert}% (alert state 3 catches soc < ${batt_thresh_alert}%)
+            int idx = start;
             lv_obj_set_style_opa(id(icon_battery), LV_OPA_COVER, 0);
             lv_label_set_text_static(id(icon_battery), GLYPHS[idx]);
-            lv_obj_set_style_text_color(id(icon_battery), lv_color_hex(COLORS[idx]), 0);
+            float s = id(g_batt_soc_val);
+            uint32_t c = (s >= ${batt_color_green})  ? 0x00FF00 :
+                         (s >= ${batt_color_blue})   ? 0x0096FF :
+                         (s >= ${batt_color_yellow}) ? 0xFFFF00 : 0xFFA500;
+            lv_obj_set_style_text_color(id(icon_battery), lv_color_hex(c), 0);
           }
 
   # ── Screensaver Activate ─────────────────────────────────────
@@ -820,8 +824,9 @@ script:
             else                 snprintf(buf, sizeof(buf), "%.2f", sv);
             lv_label_set_text(id(val_solar), buf);
             lv_label_set_text_static(id(val_solar_unit), (sv >= 1000) ? "kW" : "W");
-            lv_color_t sc = (sv > 3600) ? lv_color_hex(0x00FF00) : (sv > 2000) ? lv_color_hex(0x0096FF) :
-                            (sv > 900)  ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
+            lv_color_t sc = (sv > ${solar_color_green})  ? lv_color_hex(0x00FF00) :
+                            (sv > ${solar_color_blue})   ? lv_color_hex(0x0096FF) :
+                            (sv > ${solar_color_yellow}) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
             lv_obj_set_style_text_color(id(val_solar), sc, 0);
           }
           {
@@ -1002,9 +1007,9 @@ sensor:
                     if (x >= 10) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
-                    if (x > 3600) return lv_color_hex(0x00FF00);
-                    if (x > 2000) return lv_color_hex(0x0096FF);
-                    if (x > 900)  return lv_color_hex(0xFFFF00);
+                    if (x > ${solar_color_green})  return lv_color_hex(0x00FF00);
+                    if (x > ${solar_color_blue})   return lv_color_hex(0x0096FF);
+                    if (x > ${solar_color_yellow}) return lv_color_hex(0xFFFF00);
                     return lv_color_hex(0xFFA500);
               - lvgl.label.update:
                   id: val_solar_unit
@@ -1833,7 +1838,7 @@ text:
     entity_category: config
     optimistic: true
     restore_value: true
-    initial_value: "A/C 2nd Floor"
+    initial_value: "A/C 3rd Floor"
     mode: text
     max_length: 16
     on_value:
