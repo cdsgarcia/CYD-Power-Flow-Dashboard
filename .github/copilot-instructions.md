@@ -172,6 +172,20 @@ State=0 (static): color from `batt_color_*` substitutions — always matches `va
 
 ---
 
+## Solar Power Color Thresholds
+
+| Range | Color | Substitution |
+|-------|-------|-------------|
+| > 3600 W | 🟢 Green | `solar_color_green` = `3600` |
+| 2001 – 3600 W | 🔵 Blue | `solar_color_blue` = `2000` |
+| 1 – 2000 W | 🟡 Yellow | (hardcoded `> 0`) |
+| 0 W | 🩶 Grey | (hardcoded `== 0`) |
+| < 0 W | 🟠 Orange | (hardcoded `< 0`) |
+
+`solar_color_yellow` (`900`) is retained for icon animation state detection only — not used in value color logic.
+
+---
+
 ## Solar Icon Glyph Tables
 
 **State 1 — Sun ping-pong (8 steps, Yellow, `icon_solar`):**
