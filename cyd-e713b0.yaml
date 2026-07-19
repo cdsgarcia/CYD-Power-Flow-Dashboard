@@ -87,7 +87,7 @@ substitutions:
   # ────────────────────────────────────────────────────────────
   #  BATTERY POWER color thresholds (W) — slot 0 center display
   #  = 0 W → 🩶 Grey 0x888888 (not charging/discharging — matches cloud icon)
-  batt_pwr_green:  "3600"   # ≥ this → 🟢 Green  (fast charge)
+  batt_pwr_green:  "2500"   # ≥ this → 🟢 Green  (fast charge)
   batt_pwr_blue:   "900"    # ≥ this → 🔵 Blue   (moderate charge)
   #  > 0 and < batt_pwr_blue → 🟡 Yellow (slow / trickle charge)
   # ────────────────────────────────────────────────────────────
