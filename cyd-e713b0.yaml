@@ -1594,9 +1594,8 @@ interval:
                   // animation always has at least 2 frames even when near-full.
                   if (--bstep < 0) bstep = (bstart > 1) ? bstart : 1;
                 } else {
-                  // Count UP toward empty (index 6). Clamp reset to ≤4 so
-                  // animation always has at least 3 frames even when near-empty.
-                  if (++bstep > 6) bstep = (bstart < 4) ? bstart : 4;
+                  // Count UP toward empty (index 6). Reset to bstart on wrap.
+                  if (++bstep > 6) bstep = bstart;
                 }
                 id(g_batt_anim_step) = bstep;
                 lv_obj_set_style_opa(id(icon_battery), LV_OPA_COVER, 0);
