@@ -178,11 +178,11 @@ State=0 (static): color from `batt_color_*` substitutions — always matches `va
 |-------|-------|-------------|
 | > 3600 W | 🟢 Green | `solar_color_green` = `3600` |
 | 2001 – 3600 W | 🔵 Blue | `solar_color_blue` = `2000` |
-| 1 – 2000 W | 🟡 Yellow | (hardcoded `> 0`) |
+| 901 – 2000 W | 🟡 Yellow | `solar_color_yellow` = `900` |
+| 1 – 900 W | 🟠 Orange | (hardcoded `> 0`) |
 | 0 W | 🩶 Grey | (hardcoded `== 0`) |
-| < 0 W | 🟠 Orange | (hardcoded `< 0`) |
 
-`solar_color_yellow` (`900`) is retained for icon animation state detection only — not used in value color logic.
+`solar_color_yellow` (`900`) also drives icon animation state detection.
 
 ---
 

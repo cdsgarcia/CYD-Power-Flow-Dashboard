@@ -104,7 +104,7 @@ substitutions:
   #  SOLAR POWER color thresholds (W) — val_solar and deactivate_screensaver restore
   solar_color_green:  "3600"  # > this → 🟢 Green  (> 3600 W)
   solar_color_blue:   "2000"  # > this → 🔵 Blue   (2001–3600 W)
-  solar_color_yellow: "900"   # > this → 🟡 Yellow (used for icon animation threshold; 1–2000 W → Yellow; = 0 W → Grey; < 0 W → Orange)
+  solar_color_yellow: "900"   # > this → 🟡 Yellow (901–2000 W); ≤ this and > 0 → 🟠 Orange (1–900 W); = 0 W → 🩶 Grey
   # ────────────────────────────────────────────────────────────
 
 esphome:
@@ -860,11 +860,11 @@ script:
             else                 snprintf(buf, sizeof(buf), "%.2f", sv);
             lv_label_set_text(id(val_solar), buf);
             lv_label_set_text_static(id(val_solar_unit), (sv >= 1000) ? "kW" : "W");
-            lv_color_t sc = (sv > ${solar_color_green})  ? lv_color_hex(0x00FF00) :
-                            (sv > ${solar_color_blue})   ? lv_color_hex(0x0096FF) :
-                           (sv > 0)                    ? lv_color_hex(0xFFFF00) :  // 0 < x ≤ blue → Yellow (no Orange for low solar)
-                           (sv == 0)                   ? lv_color_hex(0x888888) :  // = 0 → Grey
-                                                         lv_color_hex(0xFFA500);   // < 0 → Orange
+            lv_color_t sc = (sv > ${solar_color_green})  ? lv_color_hex(0x00FF00) :  // > 3600 W → Green
+                           (sv > ${solar_color_blue})   ? lv_color_hex(0x0096FF) :  // 2001–3600 W → Blue
+                           (sv > ${solar_color_yellow}) ? lv_color_hex(0xFFFF00) :  // 901–2000 W → Yellow
+                           (sv > 0)                    ? lv_color_hex(0xFFA500) :  // 1–900 W → Orange
+                                                         lv_color_hex(0x888888);   // 0 W → Grey
             lv_obj_set_style_text_color(id(val_solar), sc, 0);
           }
           {
@@ -1064,11 +1064,11 @@ sensor:
                     if (x >= 10) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
-                    if (x > ${solar_color_green})  return lv_color_hex(0x00FF00);
-                    if (x > ${solar_color_blue})   return lv_color_hex(0x0096FF);
-                    if (x > 0)                     return lv_color_hex(0xFFFF00);  // 0 < x ≤ blue → Yellow
-                    if (x == 0)                    return lv_color_hex(0x888888);  // = 0 → Grey
-                    return lv_color_hex(0xFFA500);  // < 0 → Orange
+                    if (x > ${solar_color_green})  return lv_color_hex(0x00FF00);  // > 3600 W → Green
+                    if (x > ${solar_color_blue})   return lv_color_hex(0x0096FF);  // 2001–3600 W → Blue
+                    if (x > ${solar_color_yellow}) return lv_color_hex(0xFFFF00);  // 901–2000 W → Yellow
+                    if (x > 0)                     return lv_color_hex(0xFFA500);  // 1–900 W → Orange
+                    return lv_color_hex(0x888888);  // 0 W → Grey
               - lvgl.label.update:
                   id: val_solar_unit
                   text: !lambda 'return (x >= 1000) ? std::string("kW") : std::string("W");'
