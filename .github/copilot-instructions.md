@@ -41,6 +41,20 @@ Each quadrant `obj`: icon label (outer edge), title label (top), value label (ce
 
 ---
 
+## Fonts
+
+| Font ID | File | Size | Used for |
+|---------|------|------|---------|
+| `header_font` | Roboto | 40 | Clock (HH:MM:SS AM) |
+| `value_font` | Roboto | 50 | Sensor values (W, kW, VA, time) |
+| `ef_font` | Roboto | 35 | "EF" Ecoflow text icon (switched via `lv_obj_set_style_text_font`) |
+| `label_font` | Roboto | 12 | Titles, units |
+| `icon_font` | Material Icons | 60 | Solar, snowflake, home, plug glyphs |
+| `icon_font_moon` | Material Symbols Outlined | 60 | Moon cycle animation |
+| `icon_font_batt` | Material Icons | 90 | Battery SOC icon |
+
+---
+
 ## Home Load Slot Cycling (top-right quadrant)
 
 Rotates between 4 slots every `Slot Cycle Secs`:

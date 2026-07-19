@@ -318,6 +318,9 @@ script:
           } else {
             lv_obj_add_flag(id(icon_slot), LV_OBJ_FLAG_HIDDEN);
             lv_obj_clear_flag(id(icon_load1), LV_OBJ_FLAG_HIDDEN);
+            // Slot 0 = Ecoflow: "EF" in ef_font (Roboto 35); Slot 3 = Socket 1: plug glyph in icon_font
+            lv_obj_set_style_text_font(id(icon_load1), si == 0 ? id(ef_font) : id(icon_font), 0);
+            lv_label_set_text(id(icon_load1), si == 0 ? "EF" : "\ue63c");
           }
           float cg = (si == 0) ? ${load1_color_green}  :
                      (si == 1) ? ${load2_color_green}  :
@@ -918,6 +921,10 @@ font:
     id: label_font
     size: 12
     glyphs: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .%/+-"
+  - file: "gfonts://Roboto"
+    id: ef_font
+    size: 35
+    glyphs: "EF"  # Ecoflow text icon for Load 1 slot
   - file: "gfonts://Material Icons"
     id: icon_font
     size: 60
@@ -925,7 +932,7 @@ font:
       "\uec0f", # solar_power — base solar icon (used when power > 0 at start of glyph cycle)
       "\ueb3b", # ac_unit (snowflake) — slot icon for A/C loads
       "\ue88a", # home — home load icon
-      "\ue63c", # electrical_services — Load 1 icon
+      "\ue63c", # electrical_services — Load 1 / Socket 1 icon
       # ── Solar animation glyphs — sun ping-pong (state 1) ──────
       "\ue3a9", # brightness_4 — sun with some rays (sun ping-pong step 2/6)
       "\ue3aa", # brightness_5 — sun          (sun ping-pong step 4)
@@ -2256,8 +2263,8 @@ lvgl:
                   text_color: 0xFFFF00
                   align: CENTER
                   x: 55
-              # Load 1 icon (Material Icons electrical_services \ue63c) — shown for Load 1 Power slot
-              # Replace with a different glyph codepoint and add it to icon_font glyphs list
+              # Load 1 icon — slot 0 (Ecoflow): "EF" text via ef_font (Roboto 35); slot 3 (Socket 1): plug \ue63c via icon_font
+              # Font is switched dynamically in update_slot_display via lv_obj_set_style_text_font()
               - label:
                   id: icon_load1
                   text: "\ue63c"
