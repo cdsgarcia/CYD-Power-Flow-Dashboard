@@ -99,17 +99,17 @@ Battery icon glyph and color thresholds are declared as named substitutions at t
 ```yaml
 # Glyph thresholds (SOC %) — controls which glyph icon is shown
 batt_thresh_alert: "10"   # below this → flashing alert      🟠 Orange
-batt_thresh_1bar:  "25"   # battery_1_bar                    🟡 Yellow
-batt_thresh_2bar:  "40"   # battery_2_bar                    🟡 Yellow
-batt_thresh_3bar:  "55"   # battery_3_bar                    🔵 Blue
-batt_thresh_4bar:  "70"   # battery_4_bar                    🔵 Blue
-batt_thresh_5bar:  "85"   # battery_5_bar                    🟢 Green
-batt_thresh_full:  "98"   # battery_full                     🟢 Green
+batt_thresh_1bar:  "15"   # battery_1_bar                    🟡 Yellow
+batt_thresh_2bar:  "30"   # battery_2_bar                    🟡 Yellow
+batt_thresh_3bar:  "45"   # battery_3_bar                    🔵 Blue
+batt_thresh_4bar:  "60"   # battery_4_bar                    🔵 Blue
+batt_thresh_5bar:  "80"   # battery_5_bar                    🟢 Green
+batt_thresh_full:  "97"   # battery_full                     🟢 Green
 
 # Color thresholds (SOC %) — controls icon_battery + val_battery text color
 batt_color_green:  "80"   # ≥ this → 🟢 Green
-batt_color_blue:   "50"   # ≥ this → 🔵 Blue
-batt_color_yellow: "25"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
+batt_color_blue:   "60"   # ≥ this → 🔵 Blue
+batt_color_yellow: "30"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
 ```
 
 > Substitutions are compile-time text replacements — zero runtime or heap overhead.

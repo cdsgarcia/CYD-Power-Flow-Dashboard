@@ -142,12 +142,12 @@ Published HA sensors (throttled 60s, first call always immediate):
 
 | idx | Glyph | Unicode | Color | SOC range |
 |-----|-------|---------|-------|-----------|
-| 0 | battery_full | `\ue1a4` | Green | ≥ 98% |
-| 1 | battery_5_bar | `\uebd4` | Green | ≥ 85% |
-| 2 | battery_4_bar | `\uebe2` | Blue | ≥ 70% |
-| 3 | battery_3_bar | `\uebdd` | Blue | ≥ 55% |
-| 4 | battery_2_bar | `\uebe0` | Yellow | ≥ 40% |
-| 5 | battery_1_bar | `\uebd9` | Yellow | ≥ 25% |
+| 0 | battery_full | `\ue1a4` | Green | ≥ 97% |
+| 1 | battery_5_bar | `\uebd4` | Green | ≥ 80% |
+| 2 | battery_4_bar | `\uebe2` | Blue | ≥ 60% |
+| 3 | battery_3_bar | `\uebdd` | Blue | ≥ 45% |
+| 4 | battery_2_bar | `\uebe0` | Yellow | ≥ 30% |
+| 5 | battery_1_bar | `\uebd9` | Yellow | ≥ 15% |
 | 6 | battery_0_bar | `\uebdc` | Orange | ≥ 10% |
 | 7 | battery_alert | `\ue19c` | Orange | < 10% |
 
