@@ -102,6 +102,17 @@ HA controls:
 | Batt Time Estimate | `batt_time_enabled` | switch | ON |
 | Batt Log Enabled | `batt_log_enabled` | switch | OFF |
 
+Published HA sensors (throttled 60s, first call always immediate):
+
+| Entity | ID | Unit | Notes |
+|--------|----|------|-------|
+| Battery Hours to Full | `batt_hours_to_full` | h | |
+| Battery Hours to Empty | `batt_hours_to_empty` | h | |
+| Battery Full At | `batt_full_at_min` | min | minutes-since-midnight (0–1440) |
+| Battery Empty At | `batt_empty_at_min` | min | minutes-since-midnight |
+| Battery Full At Time | `batt_full_at_time` | text | e.g. "10:45 AM" / "Full" / "Not Charging" |
+| Battery Empty At Time | `batt_empty_at_time` | text | e.g. "6:30 PM" / "At Limit" / "Not Discharging" |
+
 ---
 
 ## Doorbell HA Controls
@@ -124,17 +135,6 @@ LED-only — no screen effect on E713B0. LED block runs before screensaver gate 
 | Daily Restart Enabled | `daily_restart_enabled` | switch | **OFF** |
 
 Fires via `on_time: seconds: 0, minutes: 0` (top of every hour); checks PHT hour via `gmtime_r`.
-
-Published HA sensors (throttled 60s, first call always immediate):
-
-| Entity | ID | Unit | Notes |
-|--------|----|------|-------|
-| Battery Hours to Full | `batt_hours_to_full` | h | |
-| Battery Hours to Empty | `batt_hours_to_empty` | h | |
-| Battery Full At | `batt_full_at_min` | min | minutes-since-midnight (0–1440) |
-| Battery Empty At | `batt_empty_at_min` | min | minutes-since-midnight |
-| Battery Full At Time | `batt_full_at_time` | text | e.g. "10:45 AM" / "Full" / "Not Charging" |
-| Battery Empty At Time | `batt_empty_at_time` | text | e.g. "6:30 PM" / "At Limit" / "Not Discharging" |
 
 ---
 
