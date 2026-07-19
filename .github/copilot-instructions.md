@@ -142,14 +142,14 @@ Published HA sensors (throttled 60s, first call always immediate):
 
 | idx | Glyph | Unicode | Color | SOC range |
 |-----|-------|---------|-------|-----------|
-| 0 | battery_full | `\ue1a4` | Green | ≥ 97% |
-| 1 | battery_5_bar | `\uebd4` | Green | ≥ 80% |
-| 2 | battery_4_bar | `\uebe2` | Blue | ≥ 60% |
-| 3 | battery_3_bar | `\uebdd` | Blue | ≥ 45% |
-| 4 | battery_2_bar | `\uebe0` | Yellow | ≥ 30% |
-| 5 | battery_1_bar | `\uebd9` | Yellow | ≥ 15% |
-| 6 | battery_0_bar | `\uebdc` | Orange | ≥ 10% |
-| 7 | battery_alert | `\ue19c` | Orange | < 10% |
+| 0 | battery_full | `\ue1a4` | Green | ≥ `batt_thresh_full` |
+| 1 | battery_5_bar | `\uebd4` | Green | ≥ `batt_thresh_5bar` |
+| 2 | battery_4_bar | `\uebe2` | Blue | ≥ `batt_thresh_4bar` |
+| 3 | battery_3_bar | `\uebdd` | Blue | ≥ `batt_thresh_3bar` |
+| 4 | battery_2_bar | `\uebe0` | Yellow | ≥ `batt_thresh_2bar` |
+| 5 | battery_1_bar | `\uebd9` | Yellow | ≥ `batt_thresh_1bar` |
+| 6 | battery_0_bar | `\uebdc` | Orange | ≥ `batt_thresh_alert` |
+| 7 | battery_alert | `\ue19c` | Orange | < `batt_thresh_alert` |
 
 State=0 (static): color from `batt_color_*` substitutions — always matches `val_battery`.
 
