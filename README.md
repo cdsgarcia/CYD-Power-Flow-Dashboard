@@ -178,7 +178,8 @@ After flashing, the device exposes the following controls in HA:
 
 | Entity | Type | Description |
 |--------|------|-------------|
-| Display Backlight | Light | Brightness control (saved to NVS) |
+| Display Backlight | Light | Monochromatic light entity (used internally by Display Brightness) |
+| Display Brightness | Number | Brightness 20–100%, step 10 (saved to NVS) |
 | Powerflow Mins | Number | Minutes before screensaver activates |
 | Photo Secs | Number | Seconds per photo in screensaver |
 | Photo Count | Number | Total number of photos (0 = disabled) |
@@ -187,13 +188,18 @@ After flashing, the device exposes the following controls in HA:
 | Transition Effect | Select | None / Fade / Slide* / Random |
 | Photo Order | Select | Sequential / Random |
 | Slot Cycle Secs | Number | How fast the load/battery slots cycle |
-| Battery Capacity Ah | Number | Your battery bank capacity |
+| Load 2 Threshold | Number | Min watts for A/C 1st Floor slot to appear |
+| Load 3 Threshold | Number | Min watts for A/C 3rd Floor slot to appear |
+| Load 4 Threshold | Number | Min watts for Socket 1 slot to appear |
+| Battery Capacity Ah | Number | Battery bank capacity (Ah) |
 | Batt Time Threshold | Number | Hours threshold to show time estimate |
 | Batt Time Estimate | Switch | Enable/disable battery time estimate |
-| Load 1/2/3 Label | Text | Customisable labels for load slots |
+| Batt Log Enabled | Switch | Enable WARN-level battery time logging |
+| Solar Log Enabled | Switch | Enable WARN-level solar icon logging |
+| Load 1 / 2 / 3 / 4 Label | Text | Customisable labels for each load slot (max 16 chars) |
 | Doorbell Enabled | Switch | Enable/disable doorbell RGB LED alert |
 | Doorbell LED Enabled | Switch | Enable/disable back LED flash independently |
-| Doorbell Duration Secs | Number | How long the LED flashes (3–30 s, default 10) |
+| Doorbell Duration Secs | Number | How long the LED flashes (1–30 s, default 10) |
 | Daily Restart Hour | Number | PHT hour to reboot daily (0–23, default 3) |
 | Daily Restart Enabled | Switch | Enable daily restart (default OFF) |
 
