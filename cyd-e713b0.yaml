@@ -57,8 +57,8 @@ substitutions:
   batt_thresh_full:  "97"   # battery_full                     🟢 Green
   #  Color thresholds (SOC %) ─ icon_battery + val_battery
   batt_color_green:  "80"   # ≥ this → 🟢 Green
-  batt_color_blue:   "60"   # ≥ this → 🔵 Blue
-  batt_color_yellow: "30"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
+  batt_color_blue:   "45"   # ≥ this → 🔵 Blue
+  batt_color_yellow: "15"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
   # ────────────────────────────────────────────────────────────
   #  HOME APPARENT POWER color thresholds (VA)
   home_color_green:  "1000"   # < this → 🟢 Green
@@ -1479,7 +1479,7 @@ interval:
   #   2  \uebe2  battery_4_bar  Blue   0x0096FF   (SOC ≥60%)
   #   3  \uebdd  battery_3_bar  Blue   0x0096FF   (SOC ≥45%)
   #   4  \uebe0  battery_2_bar  Yellow 0xFFFF00   (SOC ≥30%)
-  #   5  \uebd9  battery_1_bar  Yellow 0xFFFF00   (SOC ≥15%)  ← Yellow (not Orange)
+  #   5  \uebd9  battery_1_bar  Yellow 0xFFFF00   (SOC ≥15%)
   #   6  \uebdc  battery_0_bar  Orange 0xFFA500   (SOC ≥10%)
   #   7  \ue19c  battery_alert  Orange 0xFFA500   (SOC <10%)
   # Solar glyph tables — State 1 icon_font (Material Icons, size 60):
@@ -1540,7 +1540,7 @@ interval:
               };
               static const uint32_t BATT_COLORS[] = {
                 0x00FF00, 0x00FF00, 0x0096FF, 0x0096FF,
-                0xFFFF00, 0xFFFF00, 0xFFA500, 0xFFA500  // idx4=2bar idx5=1bar Yellow; idx6=0bar idx7=alert Orange
+                0xFFFF00, 0xFFFF00, 0xFFA500, 0xFFA500
               };
               if (state == 3) {
                 // Alert: flash battery_alert glyph on/off every 250ms
