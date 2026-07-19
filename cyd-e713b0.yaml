@@ -1580,9 +1580,9 @@ interval:
                              (soc >= ${batt_thresh_3bar}) ? 3 : (soc >= ${batt_thresh_2bar}) ? 4 : (soc >= ${batt_thresh_1bar}) ? 5 : 6;
                 int bstep = id(g_batt_anim_step);
                 if (state == 1) {
-                  // Count DOWN toward full (index 0). Clamp reset to ≥2 so
-                  // animation always has at least 3 frames even when near-full.
-                  if (--bstep < 0) bstep = (bstart > 2) ? bstart : 2;
+                  // Count DOWN toward full (index 0). Clamp reset to ≥1 so
+                  // animation always has at least 2 frames even when near-full.
+                  if (--bstep < 0) bstep = (bstart > 1) ? bstart : 1;
                 } else {
                   // Count UP toward empty (index 6). Clamp reset to ≤4 so
                   // animation always has at least 3 frames even when near-empty.
