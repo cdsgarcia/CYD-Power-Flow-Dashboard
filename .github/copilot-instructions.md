@@ -43,17 +43,18 @@ Each quadrant `obj`: icon label (outer edge), title label (top), value label (ce
 
 ## Home Load Slot Cycling (top-right quadrant)
 
-Rotates between 3 slots every `Slot Cycle Secs`:
+Rotates between 4 slots every `Slot Cycle Secs`:
 
 | Slot | Sensor | Default label | Icon | Visible when |
 |------|--------|--------------|------|-------------|
-| 0 | `${load2_entity}` | "A/C 1st Floor" | snowflake `\ueb3b` | value > `load2_threshold` |
-| 1 | `${load3_entity}` | "A/C 3rd Floor" | snowflake `\ueb3b` | value > `load3_threshold` |
-| 2 | `${load1_entity}` | "Ecoflow River 3" | elec. services `\ue63c` | **always shown** |
+| 0 | `${load1_entity}` | "Ecoflow River 3" | elec. services `\ue63c` | **always shown** |
+| 1 | `${load2_entity}` | "A/C 1st Floor" | snowflake `\ueb3b` | value > `load2_threshold` |
+| 2 | `${load3_entity}` | "A/C 3rd Floor" | snowflake `\ueb3b` | value > `load3_threshold` |
+| 3 | `${load4_entity}` | "Socket 1" | elec. services `\ue63c` | value > `load4_threshold` |
 
-`advance_slot`: tries `(g_slot_idx + 1) % 3`; skips slot 0/1 if value ≤ threshold; slot 2 always eligible.
+`advance_slot`: tries `(g_slot_idx + 1) % 4`; skips slots 1–3 if value ≤ threshold; slot 0 always eligible.
 
-`update_slot_display` updates: `lbl_slot`, `icon_slot` (snowflake, hidden slot 2), `icon_load1` (shown slot 2 only), `val_slot`, `val_slot_unit`.
+`update_slot_display` updates: `lbl_slot`, `icon_slot` (snowflake, shown slots 1/2 only), `icon_load1` (elec. services, shown slots 0/3), `val_slot`, `val_slot_unit`.
 
 HA controls:
 
@@ -62,6 +63,7 @@ HA controls:
 | Slot Cycle Secs | `slot_cycle_secs` | 1–15 s | 5 — shared timer for Home Load + Battery |
 | Load 2 Threshold | `load2_threshold` | 0–500 W | 10 |
 | Load 3 Threshold | `load3_threshold` | 0–500 W | 10 |
+| Load 4 Threshold | `load4_threshold` | 0–500 W | 10 |
 
 HA-editable labels (`text:`, max 16 chars, label_font charset only):
 
@@ -70,6 +72,7 @@ HA-editable labels (`text:`, max 16 chars, label_font charset only):
 | `load1_label` | "Ecoflow River 3" |
 | `load2_label` | "A/C 1st Floor" |
 | `load3_label` | "A/C 3rd Floor" |
+| `load4_label` | "Socket 1" |
 
 ---
 
@@ -237,9 +240,10 @@ advance_batt_slot: disabled — staying at slot 0 (Power W) ← Batt Time Estima
 | `ha_solar` | `g_solar_val` | `val_solar`/unit: `!g_screensaver`; `update_solar_icon_state`: always |
 | `ha_home` | `g_home_val` | `val_home`/icon/unit: `!g_screensaver` |
 | `ha_battery` | `g_batt_soc_val` | icon+val: `!g_screensaver`; `update_batt_display`: `!g_screensaver && g_batt_slot==1`; `update_batt_icon_state`: always |
-| `ha_load2` | `g_load2_val` | `!g_screensaver && g_slot_idx==0` |
-| `ha_load3` | `g_load3_val` | `!g_screensaver && g_slot_idx==1` |
-| `ha_load1` | `g_load1_val` | `!g_screensaver && g_slot_idx==2` |
+| `ha_load1` | `g_load1_val` | `!g_screensaver && g_slot_idx==0` |
+| `ha_load2` | `g_load2_val` | `!g_screensaver && g_slot_idx==1` |
+| `ha_load3` | `g_load3_val` | `!g_screensaver && g_slot_idx==2` |
+| `ha_load4` | `g_load4_val` | `!g_screensaver && g_slot_idx==3` |
 | `ha_battery_power` | `g_batt_power_val` | `!g_screensaver && g_batt_slot==0` |
 | `ha_batt_current` | `g_batt_current_val` | `!g_screensaver && g_batt_slot==1` |
 | `ha_srne_charge_limit` | `g_srne_charge_limit_val` | `!g_screensaver && g_batt_slot==1` |
@@ -260,11 +264,12 @@ advance_batt_slot: disabled — staying at slot 0 (Power W) ← Batt Time Estima
 | `g_photo_order` | `vector<int>` | Current cycle play list |
 | `g_photo_queue` | `vector<int>` | Persistent full queue |
 | `g_photo_queue_pos` | int | Next index to consume from queue |
-| `g_slot_idx` | int | Active slot: 0=Load2, 1=Load3, 2=Load1 |
+| `g_slot_idx` | int | Active slot: 0=Load1, 1=Load2, 2=Load3, 3=Load4 |
 | `g_slot_secs` | int | Shared slot countdown (Home Load + Battery) |
 | `g_load1_val` | float | Cached load1 (W) |
 | `g_load2_val` | float | Cached load2 (W) |
 | `g_load3_val` | float | Cached load3 (W) |
+| `g_load4_val` | float | Cached load4 (W) |
 | `g_batt_slot` | int | 0=Power W, 1=Time estimate |
 | `g_batt_power_val` | float | Cached battery power (W) |
 | `g_batt_soc_val` | float | Cached battery SOC (%) |
@@ -288,7 +293,7 @@ advance_batt_slot: disabled — staying at slot 0 (Power W) ← Batt Time Estima
 | ID | Purpose |
 |----|---------|
 | `update_slot_display` | Refreshes Home Load slot widgets from cached globals; `g_lvgl_ready` guard first line |
-| `advance_slot` | Finds next eligible slot (Load 1 always eligible), sets `g_slot_idx`, calls display update |
+| `advance_slot` | Finds next eligible slot (slot 0=Load1 always eligible), sets `g_slot_idx`, calls display update |
 | `update_batt_display` | Slot 0: W/kW + independently publishes HA sensors. Slot 1: time estimate or fallback to slot 0. HA publishes throttled 60s. `g_lvgl_ready` guard first line |
 | `advance_batt_slot` | Toggles `g_batt_slot` 0↔1; ineligible/disabled → stays at 0 |
 | `update_batt_icon_state` | Sets `g_batt_anim_state` from SOC + current; restores glyph+color on → static |

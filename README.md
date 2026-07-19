@@ -59,7 +59,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 ┌─────────────────────────────────┐
 │          HH:MM:SS AM/PM         │  Clock header
 ├────────────────┬────────────────┤
-│  Solar Power   │  Load Slots    │  Top-right: 3-slot cycling (A/C 1F / A/C 3F / Ecoflow)
+│  Solar Power   │  Load Slots    │  Top-right: 4-slot cycling (Ecoflow / A/C 1F / A/C 3F / Socket 1)
 ├─────────────────────────────────┤
 │     Battery Power (full width)  │  Cycles: W/kW ↔ charge/discharge time estimate
 ├────────────────┬────────────────┤
@@ -77,9 +77,10 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 | Substitution Key | Entity Example | Notes |
 |-----------------|---------------|-------|
 | `solar_entity` | `sensor.srne_pv_power` | PV power in W |
-| `load2_entity` | `sensor.a_c_1f_power_meter_power` | Load slot 2 (W) |
-| `load3_entity` | `sensor.a_c_3f_power_meter_power` | Load slot 3 (W) |
-| `load1_entity` | `sensor.ef_r30241_ac_input_power` | Load slot 1 (W) |
+| `load1_entity` | `sensor.ef_r30241_ac_input_power` | Load slot 1 — Ecoflow (W, always shown) |
+| `load2_entity` | `sensor.a_c_1f_power_meter_power` | Load slot 2 — A/C 1st Floor (W) |
+| `load3_entity` | `sensor.a_c_3f_power_meter_power` | Load slot 3 — A/C 3rd Floor (W) |
+| `load4_entity` | `sensor.smart_socket_1_power` | Load slot 4 — Socket 1 (W) |
 | `battery_entity` | `sensor.battery_soc_mean` | Battery SOC (%) |
 | `home_entity` | `sensor.srne_load_l1_apparent_power` | Home apparent power (VA) |
 | `battery_power_entity` | `sensor.total_battery_power` | Battery power W (negative = discharging) |
@@ -108,8 +109,8 @@ batt_thresh_full:  "97"   # battery_full                     🟢 Green
 
 # Color thresholds (SOC %) — controls icon_battery + val_battery text color
 batt_color_green:  "80"   # ≥ this → 🟢 Green
-batt_color_blue:   "60"   # ≥ this → 🔵 Blue
-batt_color_yellow: "30"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
+batt_color_blue:   "45"   # ≥ this → 🔵 Blue
+batt_color_yellow: "15"   # ≥ this → 🟡 Yellow  (below → 🟠 Orange)
 ```
 
 > Substitutions are compile-time text replacements — zero runtime or heap overhead.
