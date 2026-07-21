@@ -78,8 +78,8 @@ substitutions:
   load2_color_yellow: "900"
   # Load 3 — default: A/C 3rd Floor (slot 2)
   load3_color_green:  "80"
-  load3_color_blue:   "900"
-  load3_color_yellow: "1000"
+  load3_color_blue:   "800"
+  load3_color_yellow: "1200"
   # Load 4 — default: Socket 1 (slot 3, visibility threshold = 10 W via load4_threshold)
   load4_color_green:  "25"
   load4_color_blue:   "50"
@@ -1948,7 +1948,7 @@ switch:
     entity_category: config
     icon: "mdi:restart-alert"
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_OFF
+    restore_mode: RESTORE_DEFAULT_ON
 
 # Human-readable time strings for dashboard display (not graphable).
 # Pair with batt_full_at_min / batt_empty_at_min for graphing.
