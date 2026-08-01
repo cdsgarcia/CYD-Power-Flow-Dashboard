@@ -126,6 +126,15 @@ esphome:
           // no heap alloc) to reduce ongoing fragmentation from animation cycling.
           id(g_photo_queue).reserve((int)id(ss_photo_count).state);
           id(g_photo_order).reserve((int)id(ss_cycle_size).state);
+          // Pre-allocate a 32 KB contiguous heap block for the screensaver JPEG decoder.
+          // 128×96 RGB565 decode = 24,576 bytes + online_image overhead ~4 KB = ~28 KB needed.
+          // Holding this block prevents fragmentation from claiming the space before first use.
+          // Freed in activate_screensaver just before the first photo fetch.
+          void* p = heap_caps_malloc(32768, MALLOC_CAP_DEFAULT);
+          id(g_ss_heap_reserve) = (uint32_t)p;
+          ESP_LOGW("boot", "SS heap reserve: %s (free heap: %u B)",
+            p ? "32 KB allocated" : "FAILED — heap too fragmented",
+            (unsigned int)heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
           id(g_lvgl_ready) = true;
           id(update_slot_display).execute();    // apply NVS-restored slot labels and cached sensor values
           id(update_batt_display).execute();    // apply NVS-restored battery slot state
@@ -206,6 +215,9 @@ globals:
     type: std::vector<int> # rebuilt only when exhausted or photo count changes
   - id: g_photo_queue_pos  # next index to consume from g_photo_queue
     type: int
+    initial_value: '0'
+  - id: g_ss_heap_reserve  # pointer to 32 KB pre-allocated contiguous block; freed on first screensaver activation
+    type: uint32_t          # stored as integer to avoid void* in ESPHome globals; cast to/from void* in lambdas
     initial_value: '0'
   # Home Load Slot cycling
   - id: g_slot_idx       # active Home Load Slot: 0=Load 1, 1=Load 2, 2=Load 3, 3=Load 4
@@ -443,7 +455,7 @@ script:
                 int limit_pct = (int)(is_charge ? clim : dlim);
                 char action[28];
                 snprintf(action, sizeof(action), is_charge ? "Charges to %d%% at" : "Empty to %d%% at", limit_pct);
-                char tbuf[48];
+                char tbuf[64];
                 if      (days == 0) snprintf(tbuf, sizeof(tbuf), "%s", action);
                 else if (days == 1) snprintf(tbuf, sizeof(tbuf), "%s - Next Day", action);
                 else                snprintf(tbuf, sizeof(tbuf), "%s - Next %d Days", action, days);
@@ -748,6 +760,14 @@ script:
       - lambda: |-
           id(g_screensaver) = true;
           id(g_photo_secs) = (int)id(ss_photo_secs).state;
+          // Release pre-allocated heap reserve on first activation to give JPEG decoder
+          // a guaranteed contiguous block. No-op on subsequent activations (already freed).
+          if (id(g_ss_heap_reserve) != 0) {
+            heap_caps_free((void*)id(g_ss_heap_reserve));
+            id(g_ss_heap_reserve) = 0;
+            ESP_LOGW("ss", "SS heap reserve freed (free heap: %u B)",
+              (unsigned int)heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+          }
           // Persistent-shuffle queue: each activation takes the next cycle_size slice.
           // Queue is rebuilt (and re-shuffled for Random) only when exhausted or photo count changes.
           int count     = (int)id(ss_photo_count).state;
@@ -791,8 +811,7 @@ script:
           // in a row (e.g. Photo Count=1 or small cycles). HA ignores the parameter.
           char url[92];
           snprintf(url, sizeof(url),
-            "${ha_url}/local/screensaver/%02d.jpg?r=%08X", photo_num, esp_random());
-          id(ss_img).release();  // free old decoded image buffer BEFORE downloading next — prevents double-buffer OOM
+            "${ha_url}/local/screensaver/%02d.jpg?r=%08X", photo_num, (unsigned int)esp_random());
           id(ss_img).set_url(url);
           id(ss_img).update();
           lv_scr_load_anim_t anim = LV_SCR_LOAD_ANIM_NONE;
@@ -1373,8 +1392,9 @@ http_request:
 #     128×96  @ scale:2.5 = 24,576 bytes → ~20,400 headroom ✅ SAFE (current, recommended)
 #     80×60   @ scale:4.0 =  9,600 bytes                    ✅ ultra-safe fallback
 #   Upload to HA: config/www/screensaver/01.jpg … NN.jpg
-online_image:
-  - id: ss_img
+image:
+  - platform: online_image
+    id: ss_img
     url: "${ha_url}/local/screensaver/00.jpg"
     format: JPEG
     type: RGB565
@@ -1484,7 +1504,7 @@ interval:
                 int photo_num = id(g_photo_order)[id(g_photo_idx)];
                 char url[92];
                 snprintf(url, sizeof(url),
-                  "${ha_url}/local/screensaver/%02d.jpg?r=%08X", photo_num, esp_random());
+                  "${ha_url}/local/screensaver/%02d.jpg?r=%08X", photo_num, (unsigned int)esp_random());
                 static const char* tnames[] = {"Instant","Fade","Slide Left","Slide Right","Slide Up","Slide Down"};
                 ESP_LOGW("ss", "Screensaver → photo %d [%s] — fetching %s",
                   photo_num, tnames[id(g_photo_trans)], url);
