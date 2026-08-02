@@ -1968,7 +1968,7 @@ switch:
     entity_category: config
     icon: "mdi:restart-alert"
     optimistic: true
-    restore_mode: RESTORE_DEFAULT_ON
+    restore_mode: RESTORE_DEFAULT_OFF
 
 # Human-readable time strings for dashboard display (not graphable).
 # Pair with batt_full_at_min / batt_empty_at_min for graphing.
