@@ -1,6 +1,6 @@
 # CYD Power Flow Dashboard
 
-<a href="https://github.com/cdsgarcia/sunsynk-power-flow-card#support"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="28" width="120"></a>
+<a href="#support"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="28" width="120"></a>
 
 [![Validate](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/actions/workflows/validate.yml/badge.svg)](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/actions/workflows/validate.yml)
 [![GitHub release](https://img.shields.io/github/v/release/cdsgarcia/CYD-Power-Flow-Dashboard)](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/releases)
