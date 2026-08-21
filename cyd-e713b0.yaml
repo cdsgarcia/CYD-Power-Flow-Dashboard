@@ -151,8 +151,13 @@ esp32:
       sram1_as_iram: true
 
 # ── Logging ───────────────────────────────────────────────────
+# TEMPORARY: raised to INFO for crash diagnosis — exposes WiFi Connected/
+# Disconnected events (native INFO severity) for correlation with the
+# "Fault - Unknown" idle-task crash. Revert to WARN once diagnosis is done —
+# global WARN is the permanent production standard (clock fires every second,
+# DEBUG-level floods logs; INFO does not include per-second sensor spam).
 logger:
-  level: WARN
+  level: INFO
 
 # ── Home Assistant API ────────────────────────────────────────
 api:
@@ -1058,6 +1063,15 @@ sensor:
     update_interval: 300s
     accuracy_decimals: 0
 
+  # ── Uptime ────────────────────────────────────────────────
+  # Crash-correlation aid: reveals whether "Fault - Unknown" reboots are
+  # periodic (e.g. always ~X hours) or random. Check value on next crash log.
+  - platform: uptime
+    name: "Uptime"
+    id: cyd_uptime
+    entity_category: diagnostic
+    update_interval: 60s
+
   # ── Solar ────────────────────────────────────────────────
   # Caches value into g_solar_val; delegates icon animation to update_solar_icon_state (always).
   # LVGL display updates (val_solar / val_solar_unit) skipped during screensaver —
@@ -1826,7 +1840,7 @@ number:
     min_value: 1
     max_value: 48
     step: 1
-    initial_value: 18
+    initial_value: 24
     restore_value: true
     optimistic: true
     unit_of_measurement: "h"
@@ -1981,6 +1995,16 @@ switch:
 #   Discharging but estimate not shown → "Discharging"
 #   No activity → "Not Charging" / "Not Discharging"
 text_sensor:
+  # ── Reset Reason ────────────────────────────────────────────
+  # Crash-diagnosis aid: exposes the native ESP-IDF reset category, which is
+  # more specific than the "Fault - Unknown" shown by the crash-detect log.
+  # Bundled format: "<esphome_ver>|Chip: ...|Reset: <cause>|Wakeup: ...".
+  # Match on the "Reset:" substring in HA automations (see wiki Troubleshooting).
+  - platform: debug
+    device:
+      name: "Reset Reason"
+      entity_category: diagnostic
+
   # ── Doorbell trigger ────────────────────────────────────────
   # input_button state changes to a new timestamp on every press.
   # on_value fires on each change → triggers the RGB LED alert.
