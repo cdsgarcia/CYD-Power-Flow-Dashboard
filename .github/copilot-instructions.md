@@ -18,6 +18,31 @@
 
 ---
 
+## ⚠️ `http_request: watchdog_timeout: 15s` — do not remove
+
+The fix for the recurring `Reset: task watchdog` crash (v1.7.0). Verified mechanism:
+
+- ESPHome subscribes **only the loop task** to the ESP-IDF Task Watchdog (`esp_task_wdt_add(nullptr)` in `esp32/hal.cpp`); idle-core checks are compiled **off**.
+- The generated `sdkconfig` has `CONFIG_ESP_TASK_WDT_TIMEOUT_S=5` and `CONFIG_ESP_TASK_WDT_PANIC=y`.
+- `loopTask` is pinned to **core 1** — matches the crash's `Crashed core: 1`.
+- `http_request` defaults to `watchdog_timeout_{0}`, and `WatchdogManager(0)` returns immediately — a **no-op**. So a stalled photo fetch could block the loop task for the full `timeout: 10s` against a 5 s deadline.
+
+`15s` > the `10s` timeout, so the deadline always outlasts the longest possible stall.
+
+**Corollary for future debugging:** a `task watchdog` reset always means **one component's `loop()` blocked > 5 s**. The idle-task backtrace (`prvIdleTask` / `esp_cpu_wait_for_intr`) is an artifact of where core 1 was parked at panic time — never the culprit.
+
+Related: [esphome/esphome#11897](https://github.com/esphome/esphome/issues/11897)
+
+---
+
+## LVGL API Gotchas (LVGL 9.5)
+
+- **Style getters take `lv_part_t`; setters take `lv_style_selector_t`.** Use `lv_obj_get_style_opa(obj, LV_PART_MAIN)` — passing `0` fails to compile (`invalid conversion from 'int' to 'lv_part_t'`). The setter `lv_obj_set_style_opa(obj, v, 0)` accepts `0` fine.
+- **Writes invalidate unconditionally.** `lv_obj_add_flag`/`clear_flag(HIDDEN)`, `lv_obj_set_style_opa()`, `lv_label_set_text_static()` and `lv_obj_set_style_text_color()` mark the widget dirty even when the value is unchanged. In per-second and per-250 ms paths, read-then-compare first.
+- **`esphome config` does not compile lambdas** — LVGL C API errors only surface in a real build. Validate locally, but expect the compile to be the real gate.
+
+---
+
 ## LVGL Layout (320×240 landscape)
 
 ```
@@ -115,7 +140,7 @@ HA controls:
 | Entity | ID | Range | Default |
 |--------|----|-------|---------|
 | Battery Capacity Ah | `battery_capacity_ah` | 200–700, step 5 | 300 Ah |
-| Batt Time Threshold | `batt_time_threshold_hrs` | 1–48 h | 18 |
+| Batt Time Threshold | `batt_time_threshold_hrs` | 1–48 h | 24 |
 | Batt Time Estimate | `batt_time_enabled` | switch | ON |
 | Batt Log Enabled | `batt_log_enabled` | switch | OFF |
 
@@ -132,26 +157,12 @@ Published HA sensors (throttled 60s, first call always immediate):
 
 ---
 
-## Doorbell HA Controls
+## Doorbell & Daily Restart
 
-| Entity | ID | Range / Type | Default |
-|--------|----|-------------|---------|
-| Doorbell Enabled | `doorbell_enabled` | switch | ON |
-| Doorbell LED Enabled | `doorbell_led_enabled` | switch | ON |
-| Doorbell Duration Secs | `doorbell_duration_secs` | 3–30 s | 10 |
+Entity IDs, ranges and defaults are in the CYD skill and match exactly. E713B0-specific notes only:
 
-LED-only — no screen effect on E713B0. LED block runs before screensaver gate so it flashes even during screensaver.
-
----
-
-## Daily Restart HA Controls
-
-| Entity | ID | Range / Type | Default |
-|--------|----|-------------|---------|
-| Daily Restart Hour | `daily_restart_hour` | 0–23 hr | 3 |
-| Daily Restart Enabled | `daily_restart_enabled` | switch | **OFF** |
-
-Fires via `on_time: seconds: 0, minutes: 0` (top of every hour); checks PHT hour via `gmtime_r`.
+- **Doorbell is LED-only** — no screen overlay (that is 78D27C). The LED block sits *before* the screensaver gate, so it flashes even while photos are showing.
+- **Daily Restart** defaults to **OFF** and must be enabled deliberately. Fires from `on_time: seconds: 0, minutes: 0` (top of every hour) and compares the PHT hour via `gmtime_r`.
 
 ---
 
@@ -223,6 +234,8 @@ State=0 (static): color from `batt_color_*` substitutions — always matches `va
 1s interval: powerflow counts down `g_pf_secs` → when zero + Photo Count > 0 → `activate_screensaver`.
 Screensaver counts down `g_photo_secs` per photo → advances `g_photo_idx` → when all shown → `deactivate_screensaver`.
 Slot timers (`g_slot_secs`) pause during screensaver and resume on return.
+
+⚠️ On each photo advance the interval must `lv_anim_del()` **and** hide the widget *before* calling `ss_img.release()`. A still-running Fade animation drives opacity back up every tick and would re-show the widget after its pixel buffer was freed — a use-after-free. Reachable whenever the reveal (`ss_anim_ms × 2`) outlasts `Photo Secs`, e.g. Photo Secs 1 s with the default 1000 ms.
 
 ### `on_download_finished` Flow
 1. Guard: if `!g_screensaver`, ignore (deactivated mid-download)
@@ -325,6 +338,6 @@ advance_batt_slot: disabled — staying at slot 0 (Power W) ← Batt Time Estima
 | `update_batt_display` | Slot 0: W/kW + independently publishes HA sensors. Slot 1: time estimate or fallback to slot 0. HA publishes throttled 60s. `g_lvgl_ready` guard first line |
 | `advance_batt_slot` | Toggles `g_batt_slot` 0↔1; ineligible/disabled → stays at 0 |
 | `update_batt_icon_state` | Sets `g_batt_anim_state` from SOC + current; restores glyph+color on → static |
-| `update_solar_icon_state` | Sets `g_solar_anim_state` from solar power + PHT hour; toggles widget visibility unconditionally |
-| `activate_screensaver` | Builds play order, hides image widget, starts page transition, fetches first photo |
+| `update_solar_icon_state` | Sets `g_solar_anim_state` from solar power + PHT hour; syncs `icon_solar`/`icon_solar_moon` visibility, writing a `HIDDEN` flag only when it is actually wrong (v1.7.0 — unguarded writes invalidate and forced ~2 redraws/sec) |
+| `activate_screensaver` | Builds play order, hides image widget, calls `ss_img.release()`, starts page transition, fetches first photo |
 | `deactivate_screensaver` | Returns to main page, restores all tile displays from cached globals |

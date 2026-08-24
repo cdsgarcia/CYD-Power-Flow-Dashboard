@@ -1,6 +1,9 @@
 # Changelog
 
-All notable changes to this project are documented here.
+Release notes for **v1.3.0 and later** are published on the
+[GitHub Releases page](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/releases).
+
+This file is retained as the historical archive for **v1.0.0 – v1.2.3**.
 
 ---
 

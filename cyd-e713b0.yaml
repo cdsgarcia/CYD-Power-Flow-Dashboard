@@ -151,13 +151,13 @@ esp32:
       sram1_as_iram: true
 
 # ── Logging ───────────────────────────────────────────────────
-# TEMPORARY: raised to INFO for crash diagnosis — exposes WiFi Connected/
-# Disconnected events (native INFO severity) for correlation with the
-# "Fault - Unknown" idle-task crash. Revert to WARN once diagnosis is done —
-# global WARN is the permanent production standard (clock fires every second,
-# DEBUG-level floods logs; INFO does not include per-second sensor spam).
+# WARN is the permanent production standard — the clock fires every second, so
+# DEBUG floods the log. Raise to INFO only for temporary diagnosis (INFO exposes
+# WiFi Connected/Disconnected at their native severity, without per-second sensor
+# spam), then revert. The "task watchdog" crash diagnosis that INFO was raised for
+# is complete — see the http_request block for the root cause and fix.
 logger:
-  level: INFO
+  level: WARN
 
 # ── Home Assistant API ────────────────────────────────────────
 api:
@@ -666,26 +666,34 @@ script:
           // Skip LVGL ops when screensaver is active (icon not visible)
           if (id(g_screensaver)) return;
 
-          // Always sync widget visibility to current state on every call —
-          // using FLAG_HIDDEN (not opacity) so the hidden widget never renders.
-          // This prevents the ghost icon when update_solar_icon_state is called
-          // repeatedly in the same state (e.g. from the 1s interval when solar=0).
-          if (new_state == 2) {
-            lv_obj_add_flag(id(icon_solar), LV_OBJ_FLAG_HIDDEN);
-            lv_obj_clear_flag(id(icon_solar_moon), LV_OBJ_FLAG_HIDDEN);
-          } else {
-            lv_obj_clear_flag(id(icon_solar), LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(id(icon_solar_moon), LV_OBJ_FLAG_HIDDEN);
+          // Sync widget visibility to current state, but only touch flags that are
+          // actually wrong. lv_obj_add_flag/clear_flag(HIDDEN) invalidates the widget
+          // area unconditionally, so the previous unguarded version forced two icon
+          // redraws every second (1s interval re-calls this whenever solar = 0).
+          // End state is identical — still FLAG_HIDDEN, never opacity, so the hidden
+          // widget never renders and no ghost icon can appear.
+          bool night = (new_state == 2);
+          if (lv_obj_has_flag(id(icon_solar), LV_OBJ_FLAG_HIDDEN) != night) {
+            if (night) lv_obj_add_flag(id(icon_solar), LV_OBJ_FLAG_HIDDEN);
+            else       lv_obj_clear_flag(id(icon_solar), LV_OBJ_FLAG_HIDDEN);
+          }
+          if (lv_obj_has_flag(id(icon_solar_moon), LV_OBJ_FLAG_HIDDEN) == night) {
+            if (night) lv_obj_clear_flag(id(icon_solar_moon), LV_OBJ_FLAG_HIDDEN);
+            else       lv_obj_add_flag(id(icon_solar_moon), LV_OBJ_FLAG_HIDDEN);
           }
 
-          // Apply glyph/color only on state change, or re-apply static cloudy on every call
-          // (states 1 & 2 let the interval own the glyph — repeated same-state calls must
-          //  not interrupt the ping-pong mid-cycle)
+          // Apply glyph/color only on state change, or re-apply static cloudy when it
+          // is not already showing (states 1 & 2 let the interval own the glyph —
+          // repeated same-state calls must not interrupt the ping-pong mid-cycle).
+          // The state-0 re-apply is guarded by strcmp because set_text_static() and
+          // set_style_text_color() also invalidate unconditionally.
           if (new_state != prev_state || new_state == 0) {
             if (new_state == 0) {
               // Daytime no production: wb_cloudy, grey, static
-              lv_label_set_text_static(id(icon_solar), "\ue42d");
-              lv_obj_set_style_text_color(id(icon_solar), lv_color_hex(0x888888), 0);
+              if (strcmp(lv_label_get_text(id(icon_solar)), "\ue42d") != 0) {
+                lv_label_set_text_static(id(icon_solar), "\ue42d");
+                lv_obj_set_style_text_color(id(icon_solar), lv_color_hex(0x888888), 0);
+              }
             } else if (new_state == 1) {
               // Solar producing: show solar_power (step 0); interval ping-pongs through rest
               lv_label_set_text_static(id(icon_solar), "\uec0f");
@@ -817,6 +825,12 @@ script:
           char url[92];
           snprintf(url, sizeof(url),
             "${ha_url}/local/screensaver/%02d.jpg?r=%08X", photo_num, (unsigned int)esp_random());
+          // Mitigation (5): free the previous cycle's decoded buffer BEFORE this download
+          // allocates a new one. Without it, the last photo of the previous cycle stayed
+          // resident for the whole powerflow period, so the first photo of every activation
+          // needed 2 × 24,576 B live at once — and Heap Largest Block is only 49,152 B.
+          // Mirrors the per-photo path in the 1s interval.
+          id(ss_img).release();
           id(ss_img).set_url(url);
           id(ss_img).update();
           lv_scr_load_anim_t anim = LV_SCR_LOAD_ANIM_NONE;
@@ -1064,8 +1078,10 @@ sensor:
     accuracy_decimals: 0
 
   # ── Uptime ────────────────────────────────────────────────
-  # Crash-correlation aid: reveals whether "Fault - Unknown" reboots are
-  # periodic (e.g. always ~X hours) or random. Check value on next crash log.
+  # Added to test whether the recurring reboots were periodic or random — they
+  # were random (gaps of ~20 days then ~3 days, peaking at ~80 h). Now serves as
+  # the primary confirmation that the v1.7.0 task-watchdog fix holds: this should
+  # keep climbing without resetting. See the http_request block for the fix.
   - platform: uptime
     name: "Uptime"
     id: cyd_uptime
@@ -1376,9 +1392,22 @@ display:
       height: 320
 
 # ── HTTP (required by online_image) ──────────────────────────
+# watchdog_timeout is REQUIRED here — it is the fix for the recurring
+# "Reset: task watchdog" crash. Verified mechanism:
+#   * ESPHome subscribes ONLY the loop task to the ESP-IDF Task Watchdog
+#     (idle-core checks are compiled off) and builds with
+#     CONFIG_ESP_TASK_WDT_TIMEOUT_S=5 and CONFIG_ESP_TASK_WDT_PANIC=y.
+#   * loopTask is pinned to core 1 — matches the crash's "Crashed core: 1".
+#   * http_request's WatchdogManager defaults to watchdog_timeout_{0}, and a
+#     WatchdogManager constructed with 0 returns immediately — a no-op. So a
+#     blocking fetch could stall the loop task for the full 10s `timeout:`
+#     while the TWDT deadline stayed at 5s, panicking at the 5s mark.
+# 15s > the 10s timeout, so the deadline now always outlasts the longest
+# possible stall. Related: https://github.com/esphome/esphome/issues/11897
 http_request:
   useragent: esphome/${name}
   timeout: 10s
+  watchdog_timeout: 15s
 
 # ── Screensaver Image ─────────────────────────────────────────
 # transparency: chroma_key enables LV_DRAW_SW_SUPPORT_RGB565A8 in lv_conf.h,
@@ -1398,6 +1427,10 @@ http_request:
 #   (4) ha_solar/ha_home/ha_battery LVGL updates guarded during screensaver.
 #   (5) ss_img.release() called before every set_url() — frees old decoded image
 #       buffer BEFORE new download starts, preventing double-buffer overlap OOM.
+#       BOTH call sites must do this: the per-photo path in the 1s interval AND
+#       activate_screensaver. The latter was missing until v1.7.0, so the first
+#       photo of every screensaver cycle briefly needed 2 × 24,576 B live at once
+#       against a Heap Largest Block of exactly 49,152 B — no margin at all.
 #       (heap sensor 5s poll misses the brief overlap window — graph looks fine
 #        but actual dip can cause OOM in the sub-second decode window)
 #
@@ -1513,6 +1546,13 @@ interval:
                 else if (tr == "Slide Down")  id(g_photo_trans) = 5;
                 else if (tr == "Random")      id(g_photo_trans) = (int)(esp_random() % 6);
                 else                          id(g_photo_trans) = 0;  // None
+                // Cancel any still-running reveal animation BEFORE the buffer is freed
+                // below. A Fade animation drives opa back up on every tick, so it would
+                // re-show the widget while its pixel buffer is released (use-after-free).
+                // Reachable whenever the reveal (ss_anim_ms × 2) outlasts Photo Secs —
+                // e.g. Photo Secs 1s with the default 1000 ms Animation Duration.
+                lv_anim_del(id(ss_img_widget), NULL);
+                lv_obj_add_flag(id(ss_img_widget), LV_OBJ_FLAG_HIDDEN);
                 lv_obj_set_style_opa(id(ss_img_widget), LV_OPA_TRANSP, 0);  // prime for reveal: Fade starts from TRANSP; Slide overrides to COVER on arrival
                 id(g_photo_secs) = (int)id(ss_photo_secs).state;
                 int photo_num = id(g_photo_order)[id(g_photo_idx)];
@@ -1603,7 +1643,13 @@ interval:
           {
             int state = id(g_batt_anim_state);
             if (state == 0) {
-              lv_obj_set_style_opa(id(icon_battery), LV_OPA_COVER, 0);  // safety: full opacity
+              // Safety: restore full opacity after an alert flash. Only write when it
+              // actually differs — lv_obj_set_style_opa() invalidates unconditionally,
+              // so the unguarded call redrew the 90 px battery icon 4×/s, 24/7.
+              // NB: the getter takes lv_part_t (strong enum) so it needs LV_PART_MAIN,
+              // not 0 — unlike the setter, whose lv_style_selector_t accepts 0.
+              if (lv_obj_get_style_opa(id(icon_battery), LV_PART_MAIN) != LV_OPA_COVER)
+                lv_obj_set_style_opa(id(icon_battery), LV_OPA_COVER, 0);
             } else {
               static const char* const BATT_GLYPHS[] = {
                 "\ue1a4", "\uebd4", "\uebe2", "\uebdd",
@@ -1996,8 +2042,11 @@ switch:
 #   No activity → "Not Charging" / "Not Discharging"
 text_sensor:
   # ── Reset Reason ────────────────────────────────────────────
-  # Crash-diagnosis aid: exposes the native ESP-IDF reset category, which is
-  # more specific than the "Fault - Unknown" shown by the crash-detect log.
+  # Exposes the native ESP-IDF reset category, which is far more specific than
+  # the "Fault - Unknown" shown by the crash-detect log. This is the sensor that
+  # cracked the recurring-crash investigation: it reported "Reset: task watchdog",
+  # ruling out brownout/power and pointing straight at a blocked loop task.
+  # Keep it — it is the early-warning signal if the crash ever returns.
   # Bundled format: "<esphome_ver>|Chip: ...|Reset: <cause>|Wakeup: ...".
   # Match on the "Reset:" substring in HA automations (see wiki Troubleshooting).
   - platform: debug

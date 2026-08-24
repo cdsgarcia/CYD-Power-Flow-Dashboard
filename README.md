@@ -5,7 +5,7 @@
 [![Validate](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/actions/workflows/validate.yml/badge.svg)](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/actions/workflows/validate.yml)
 [![GitHub release](https://img.shields.io/github/v/release/cdsgarcia/CYD-Power-Flow-Dashboard)](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![ESPHome](https://img.shields.io/badge/ESPHome-2024.x+-blue)](https://esphome.io)
+[![ESPHome](https://img.shields.io/badge/ESPHome-2026.7+-blue)](https://esphome.io)
 [![Platform](https://img.shields.io/badge/Platform-ESP32-red)](https://www.espressif.com)
 
 An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that renders a real-time Home Assistant power flow dashboard on a 320×240 ILI9341 display. When idle, it transitions to a photo screensaver with configurable transitions and play order.
@@ -28,7 +28,7 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 - **Configurable from HA** — Timers, thresholds, labels, brightness, screensaver settings all exposed as HA entities
 - **PHT clock** — Clock header always shows correct local time (UTC+8) regardless of HA timezone config
 - **Daily restart** — Optional scheduled reboot at a configurable hour (disabled by default)
-- **Heap monitoring** — Exposes SRAM free/largest-block sensors to HA for OOM diagnostics
+- **Diagnostics** — Heap free/largest-block, loop time, uptime and reset reason published to HA, with optional phone notification on crash
 
 ---
 
@@ -73,7 +73,8 @@ An ESPHome configuration for the **CYD (Cheap Yellow Display)** ESP32 that rende
 
 ## Prerequisites
 
-- [ESPHome](https://esphome.io) ≥ 2024.x
+- [ESPHome](https://esphome.io) **≥ 2026.7** — earlier versions reject the `image:` /
+  `online_image` schema used by the screensaver
 - Home Assistant with the following sensors configured:
 
 | Substitution Key | Entity Example | Notes |
@@ -207,17 +208,27 @@ After flashing, the device exposes the following controls in HA:
 
 ---
 
-## Heap Monitoring
+## Diagnostics
 
-Three diagnostic sensors are published to HA every 5 seconds:
+Diagnostic sensors published to Home Assistant:
 
-| Sensor | Description |
-|--------|-------------|
-| `Heap Free` | Total free SRAM bytes |
-| `Heap Largest Block` | Largest contiguous free block — must stay ≥ 24,576 for screensaver |
-| `Loop Time` | ESP32 main loop time (ms) |
+| Sensor | Interval | Description |
+|--------|----------|-------------|
+| `Heap Free` | 5 s | Total free SRAM bytes |
+| `Heap Largest Block` | 5 s | Largest contiguous free block — must stay ≥ 24,576 for screensaver |
+| `Loop Time` | 5 s | ESP32 main loop time (ms) |
+| `Uptime` | 60 s | Seconds since boot — the simplest confirmation the device is stable |
+| `Reset Reason` | on change | Native ESP-IDF reset category, e.g. `Reset: task watchdog` |
+| `Signal strength` | 300 s | WiFi RSSI |
 
 Add a **History Graph** card in HA tracking `sensor.cyd_e713b0_heap_largest_block` with a reference line at 24576 to monitor screensaver health.
+
+**Crash alerting.** `Reset Reason` publishes a bundled string of the form
+`<esphome_ver>|Chip: …|Reset: <cause>|Wakeup: …`. An HA automation that matches suspicious
+keywords inside it (`panic`, `exception`, `brownout`, `watchdog`, `fault`) will push a phone
+notification on the first boot after a crash — this is how the v1.7.0 task-watchdog bug was
+caught. Full automation YAML is on the
+[wiki Troubleshooting page](https://github.com/cdsgarcia/CYD-Power-Flow-Dashboard/wiki/Troubleshooting).
 
 ---
 
