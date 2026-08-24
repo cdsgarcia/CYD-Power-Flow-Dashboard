@@ -1400,14 +1400,30 @@ display:
 #   * loopTask is pinned to core 1 — matches the crash's "Crashed core: 1".
 #   * http_request's WatchdogManager defaults to watchdog_timeout_{0}, and a
 #     WatchdogManager constructed with 0 returns immediately — a no-op. So a
-#     blocking fetch could stall the loop task for the full 10s `timeout:`
-#     while the TWDT deadline stayed at 5s, panicking at the 5s mark.
-# 15s > the 10s timeout, so the deadline now always outlasts the longest
-# possible stall. Related: https://github.com/esphome/esphome/issues/11897
+#     blocking fetch could stall the loop task indefinitely while the TWDT
+#     deadline stayed at 5s, panicking at the 5s mark.
+#
+# Sizing these two values is NOT "watchdog_timeout > timeout". `timeout:` is
+# passed to ESP-IDF as esp_http_client_config_t.timeout_ms, documented as
+# "Network timeout" — it applies PER SOCKET OPERATION, not to the request as
+# a whole. HttpRequestIDF::perform() holds one WatchdogManager across
+# esp_http_client_open() AND esp_http_client_fetch_headers(), so connect +
+# write + read-headers can each burn a full `timeout:` inside a single
+# watchdog window. watchdog_timeout must therefore cover the AGGREGATE.
+#   6x margin: 3 stacked operations x 5s = 15s worst case, against 30s.
+# Body reads are safe by construction — HttpContainerIDF::read() takes its own
+# WatchdogManager for a single esp_http_client_read(), and online_image's
+# loop() performs exactly one read per iteration ("download in chunks to
+# avoid blocking"), so the body never accumulates inside one window.
+#
+# `timeout: 5s` is still ~50x headroom: this is a LAN fetch of a ~5 KB JPEG
+# from a literal IP (no DNS lookup, no TLS handshake). A miss degrades
+# gracefully via on_error — far better than a reboot.
+# See https://github.com/esphome/esphome/issues/18016 for the full analysis.
 http_request:
   useragent: esphome/${name}
-  timeout: 10s
-  watchdog_timeout: 15s
+  timeout: 5s
+  watchdog_timeout: 30s
 
 # ── Screensaver Image ─────────────────────────────────────────
 # transparency: chroma_key enables LV_DRAW_SW_SUPPORT_RGB565A8 in lv_conf.h,
