@@ -1433,6 +1433,11 @@ http_request:
 #       against a Heap Largest Block of exactly 49,152 B — no margin at all.
 #       (heap sensor 5s poll misses the brief overlap window — graph looks fine
 #        but actual dip can cause OOM in the sub-second decode window)
+#   (6) on_boot heap_caps_malloc(32768) parks a contiguous 32 KB block in
+#       g_ss_heap_reserve so fragmentation cannot claim the space before the
+#       decoder needs it; activate_screensaver frees it just before the first
+#       photo fetch (no-op on later activations). Do not remove this as an
+#       "unused allocation" — holding the block IS its entire purpose.
 #
 #   Resolution comparison (320×240 display):
 #     160×120 @ scale:2.0 = 38,400 bytes → ~6,600 headroom  ⚠️ thin margin, not recommended
