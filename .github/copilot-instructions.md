@@ -43,6 +43,19 @@ Related: [esphome/esphome#11897](https://github.com/esphome/esphome/issues/11897
 
 ---
 
+## Value Formatting — rounding-boundary thresholds
+
+Value and unit are separate labels here (`val_solar` + `val_solar_unit`, etc.), so **both lambdas must use the same threshold** or you get `1.00 W`. Thresholds are the rounding boundaries, not round numbers — printf rounds *after* the branch is chosen, so `v >= 1000` renders 999.6 as `1000 W`:
+
+| Branch | Threshold | Format |
+|---|---|---|
+| kW / kVA | `>= 999.5f` | `%.2f` of `v / 1000` |
+| 3 digits | `>= 99.95f` | `%.0f` |
+| 2 digits | `>= 9.995f` | `%.1f` |
+| else | — | `%.2f` |
+
+Battery power is signed: mirror each test (`v <= -999.5f`). SOC uses the lower two rows.
+
 ## LVGL Layout (320×240 landscape)
 
 ```

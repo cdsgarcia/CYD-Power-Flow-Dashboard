@@ -355,12 +355,12 @@ script:
           lv_obj_set_style_text_color(id(icon_load1), clr, 0);
           lv_obj_set_style_text_color(id(val_slot), clr, 0);
           char buf[16];
-          if      (v >= 1000) snprintf(buf, sizeof(buf), "%.2f", v / 1000.0f);
-          else if (v >= 100)  snprintf(buf, sizeof(buf), "%.0f", v);
-          else if (v >= 10)   snprintf(buf, sizeof(buf), "%.1f", v);
+          if      (v >= 999.5f) snprintf(buf, sizeof(buf), "%.2f", v / 1000.0f);
+          else if (v >= 99.95f)  snprintf(buf, sizeof(buf), "%.0f", v);
+          else if (v >= 9.995f)   snprintf(buf, sizeof(buf), "%.1f", v);
           else                snprintf(buf, sizeof(buf), "%.2f", v);
           lv_label_set_text(id(val_slot), buf);
-          lv_label_set_text_static(id(val_slot_unit), v >= 1000 ? "kW" : "W");  // literals in flash — no heap copy
+          lv_label_set_text_static(id(val_slot_unit), v >= 999.5f ? "kW" : "W");  // literals in flash — no heap copy
 
   # ── Home Load Slot Advance ───────────────────────────────────
   # Finds next visible slot (slot 0=Load 1 always shown; slots 1–3 skipped if below threshold).
@@ -503,9 +503,9 @@ script:
           // ── Slot 0 (or slot 1 fallback): Battery Power ─────────────
           lv_label_set_text_static(id(lbl_batt_title), "Battery Power");  // literal — no heap copy
           char buf[16];
-          if      (v >= 1000 || v <= -1000) snprintf(buf, sizeof(buf), "%.2f", v / 1000.0f);
-          else if (v >= 100  || v <= -100)  snprintf(buf, sizeof(buf), "%.0f", v);
-          else if (v >= 10   || v <= -10)   snprintf(buf, sizeof(buf), "%.1f", v);
+          if      (v >= 999.5f || v <= -999.5f) snprintf(buf, sizeof(buf), "%.2f", v / 1000.0f);
+          else if (v >= 99.95f  || v <= -99.95f)  snprintf(buf, sizeof(buf), "%.0f", v);
+          else if (v >= 9.995f   || v <= -9.995f)   snprintf(buf, sizeof(buf), "%.1f", v);
           else                              snprintf(buf, sizeof(buf), "%.2f", v);
           lv_label_set_text(id(val_battery_power), buf);
           lv_color_t clr;
@@ -516,7 +516,7 @@ script:
           else if (v == 0.0f)               clr = lv_color_hex(0x888888);  // not charging/discharging — grey (matches cloud icon)
           else                              clr = lv_color_hex(0xFFA500);  // discharging (any rate)
           lv_obj_set_style_text_color(id(val_battery_power), clr, 0);
-          lv_label_set_text_static(id(val_battery_power_unit), (v >= 1000 || v <= -1000) ? "kW" : "W");  // literals — no heap copy
+          lv_label_set_text_static(id(val_battery_power_unit), (v >= 999.5f || v <= -999.5f) ? "kW" : "W");  // literals — no heap copy
           // Publish HA sensors — always compute estimate independently of the display slot.
           // Display shows "Battery Power" here (slot 0), but HA sensors always reflect the
           // current estimate so they don't oscillate with the 5s slot timer. Throttled to 60s.
@@ -892,12 +892,12 @@ script:
             // Solar Power
             float sv = id(g_solar_val);
             char buf[12];
-            if      (sv >= 1000) snprintf(buf, sizeof(buf), "%.2f", sv / 1000.0f);
-            else if (sv >= 100)  snprintf(buf, sizeof(buf), "%.0f", sv);
-            else if (sv >= 10)   snprintf(buf, sizeof(buf), "%.1f", sv);
+            if      (sv >= 999.5f) snprintf(buf, sizeof(buf), "%.2f", sv / 1000.0f);
+            else if (sv >= 99.95f)  snprintf(buf, sizeof(buf), "%.0f", sv);
+            else if (sv >= 9.995f)   snprintf(buf, sizeof(buf), "%.1f", sv);
             else                 snprintf(buf, sizeof(buf), "%.2f", sv);
             lv_label_set_text(id(val_solar), buf);
-            lv_label_set_text_static(id(val_solar_unit), (sv >= 1000) ? "kW" : "W");
+            lv_label_set_text_static(id(val_solar_unit), (sv >= 999.5f) ? "kW" : "W");
             lv_color_t sc = (sv > ${solar_color_green})  ? lv_color_hex(0x00FF00) :  // > 3600 W → Green
                            (sv > ${solar_color_blue})   ? lv_color_hex(0x0096FF) :  // 2001–3600 W → Blue
                            (sv > ${solar_color_yellow}) ? lv_color_hex(0xFFFF00) :  // 901–2000 W → Yellow
@@ -909,12 +909,12 @@ script:
             // Home Load
             float hv = id(g_home_val);
             char buf[12];
-            if      (hv >= 1000) snprintf(buf, sizeof(buf), "%.2f", hv / 1000.0f);
-            else if (hv >= 100)  snprintf(buf, sizeof(buf), "%.0f", hv);
-            else if (hv >= 10)   snprintf(buf, sizeof(buf), "%.1f", hv);
+            if      (hv >= 999.5f) snprintf(buf, sizeof(buf), "%.2f", hv / 1000.0f);
+            else if (hv >= 99.95f)  snprintf(buf, sizeof(buf), "%.0f", hv);
+            else if (hv >= 9.995f)   snprintf(buf, sizeof(buf), "%.1f", hv);
             else                 snprintf(buf, sizeof(buf), "%.2f", hv);
             lv_label_set_text(id(val_home), buf);
-            lv_label_set_text_static(id(val_home_unit), (hv >= 1000) ? "kVA" : "VA");
+            lv_label_set_text_static(id(val_home_unit), (hv >= 999.5f) ? "kVA" : "VA");
             lv_color_t hc = (hv < ${home_color_green}) ? lv_color_hex(0x00FF00) : (hv < ${home_color_blue}) ? lv_color_hex(0x0096FF) :
                             (hv < ${home_color_yellow}) ? lv_color_hex(0xFFFF00) : lv_color_hex(0xFFA500);
             lv_obj_set_style_text_color(id(val_home), hc, 0);
@@ -924,8 +924,8 @@ script:
             // Battery SOC
             float soc = id(g_batt_soc_val);
             char buf[10];
-            if      (soc >= 100) snprintf(buf, sizeof(buf), "%.0f", soc);
-            else if (soc >= 10)  snprintf(buf, sizeof(buf), "%.1f", soc);
+            if      (soc >= 99.95f) snprintf(buf, sizeof(buf), "%.0f", soc);
+            else if (soc >= 9.995f)  snprintf(buf, sizeof(buf), "%.1f", soc);
             else                 snprintf(buf, sizeof(buf), "%.2f", soc);
             lv_label_set_text(id(val_battery), buf);
             lv_color_t clr = (soc >= ${batt_color_green}) ? lv_color_hex(0x00FF00) :
@@ -1108,9 +1108,9 @@ sensor:
               - lvgl.label.update:
                   id: val_solar
                   text: !lambda |-
-                    if (x >= 1000) return str_sprintf("%.2f", x / 1000.0f);
-                    if (x >= 100) return str_sprintf("%.0f", x);
-                    if (x >= 10) return str_sprintf("%.1f", x);
+                    if (x >= 999.5f) return str_sprintf("%.2f", x / 1000.0f);
+                    if (x >= 99.95f) return str_sprintf("%.0f", x);
+                    if (x >= 9.995f) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
                     if (x > ${solar_color_green})  return lv_color_hex(0x00FF00);  // > 3600 W → Green
@@ -1120,7 +1120,7 @@ sensor:
                     return lv_color_hex(0x888888);  // 0 W → Grey
               - lvgl.label.update:
                   id: val_solar_unit
-                  text: !lambda 'return (x >= 1000) ? std::string("kW") : std::string("W");'
+                  text: !lambda 'return (x >= 999.5f) ? std::string("kW") : std::string("W");'
 
   # ── Home Load Slots (4 slots: Load 1 → Load 2 → Load 3 → Load 4) ──
   # All four cache their value; update the display only when their slot is active.
@@ -1180,9 +1180,9 @@ sensor:
               - lvgl.label.update:
                   id: val_home
                   text: !lambda |-
-                    if (x >= 1000) return str_sprintf("%.2f", x / 1000.0f);
-                    if (x >= 100) return str_sprintf("%.0f", x);
-                    if (x >= 10) return str_sprintf("%.1f", x);
+                    if (x >= 999.5f) return str_sprintf("%.2f", x / 1000.0f);
+                    if (x >= 99.95f) return str_sprintf("%.0f", x);
+                    if (x >= 9.995f) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
                     if (x < ${home_color_green}) return lv_color_hex(0x00FF00);
@@ -1198,7 +1198,7 @@ sensor:
                     return lv_color_hex(0xFFA500);
               - lvgl.label.update:
                   id: val_home_unit
-                  text: !lambda 'return (x >= 1000) ? std::string("kVA") : std::string("VA");'
+                  text: !lambda 'return (x >= 999.5f) ? std::string("kVA") : std::string("VA");'
 
   # ── Battery SOC ───────────────────────────────────────────
   # Always caches g_batt_soc_val and calls update_batt_icon_state (has internal screensaver guard).
@@ -1236,8 +1236,8 @@ sensor:
               - lvgl.label.update:
                   id: val_battery
                   text: !lambda |-
-                    if (x >= 100) return str_sprintf("%.0f", x);
-                    if (x >= 10) return str_sprintf("%.1f", x);
+                    if (x >= 99.95f) return str_sprintf("%.0f", x);
+                    if (x >= 9.995f) return str_sprintf("%.1f", x);
                     return str_sprintf("%.2f", x);
                   text_color: !lambda |-
                     if (x >= ${batt_color_green}) return lv_color_hex(0x00FF00);
@@ -1893,7 +1893,7 @@ number:
     min_value: 200
     max_value: 700
     step: 5
-    initial_value: 300
+    initial_value: 624
     restore_value: true
     optimistic: true
     unit_of_measurement: "Ah"
